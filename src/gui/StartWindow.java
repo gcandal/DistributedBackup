@@ -1,0 +1,152 @@
+package gui;
+
+import java.awt.EventQueue;
+
+import javax.swing.JFrame;
+import com.jgoodies.forms.layout.FormLayout;
+import com.jgoodies.forms.layout.ColumnSpec;
+import com.jgoodies.forms.layout.RowSpec;
+import com.jgoodies.forms.factories.FormFactory;
+
+import core.Processor;
+
+import javax.swing.JLabel;
+import javax.swing.JButton;
+import javax.swing.JSpinner;
+import javax.swing.JComboBox;
+import javax.swing.SpinnerNumberModel;
+
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import javax.swing.JSlider;
+
+public class StartWindow {
+
+	private Processor core;
+	private JFrame frmDistributedBackupSystem;
+
+	/**
+	 * Launch the application.
+	 */
+	public static void main(String[] args) {
+		EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				try {
+					StartWindow window = new StartWindow();
+					window.frmDistributedBackupSystem.setVisible(true);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
+	}
+
+	/**
+	 * Create the application.
+	 */
+	public StartWindow() {
+		core = new Processor();
+		initialize();
+	}
+
+	/**
+	 * Initialize the contents of the frame.
+	 */
+	private void initialize() {
+		frmDistributedBackupSystem = new JFrame();
+		frmDistributedBackupSystem.setTitle("Distributed Backup System");
+		frmDistributedBackupSystem.setBounds(100, 100, 563, 354);
+		frmDistributedBackupSystem.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frmDistributedBackupSystem.getContentPane().setLayout(new FormLayout(new ColumnSpec[] {
+				FormFactory.RELATED_GAP_COLSPEC,
+				FormFactory.DEFAULT_COLSPEC,
+				FormFactory.RELATED_GAP_COLSPEC,
+				ColumnSpec.decode("default:grow"),
+				FormFactory.RELATED_GAP_COLSPEC,
+				FormFactory.DEFAULT_COLSPEC,
+				FormFactory.RELATED_GAP_COLSPEC,
+				FormFactory.DEFAULT_COLSPEC,
+				FormFactory.RELATED_GAP_COLSPEC,
+				ColumnSpec.decode("max(28dlu;default)"),
+				FormFactory.RELATED_GAP_COLSPEC,
+				ColumnSpec.decode("max(21dlu;default)"),},
+			new RowSpec[] {
+				FormFactory.RELATED_GAP_ROWSPEC,
+				FormFactory.DEFAULT_ROWSPEC,
+				FormFactory.RELATED_GAP_ROWSPEC,
+				FormFactory.DEFAULT_ROWSPEC,
+				FormFactory.RELATED_GAP_ROWSPEC,
+				FormFactory.DEFAULT_ROWSPEC,
+				FormFactory.RELATED_GAP_ROWSPEC,
+				FormFactory.DEFAULT_ROWSPEC,
+				FormFactory.RELATED_GAP_ROWSPEC,
+				FormFactory.DEFAULT_ROWSPEC,
+				FormFactory.RELATED_GAP_ROWSPEC,
+				FormFactory.DEFAULT_ROWSPEC,
+				FormFactory.RELATED_GAP_ROWSPEC,
+				FormFactory.DEFAULT_ROWSPEC,
+				FormFactory.RELATED_GAP_ROWSPEC,
+				FormFactory.DEFAULT_ROWSPEC,
+				FormFactory.RELATED_GAP_ROWSPEC,
+				FormFactory.DEFAULT_ROWSPEC,
+				FormFactory.RELATED_GAP_ROWSPEC,
+				FormFactory.DEFAULT_ROWSPEC,
+				FormFactory.RELATED_GAP_ROWSPEC,
+				FormFactory.DEFAULT_ROWSPEC,
+				FormFactory.RELATED_GAP_ROWSPEC,
+				FormFactory.DEFAULT_ROWSPEC,
+				FormFactory.RELATED_GAP_ROWSPEC,
+				FormFactory.DEFAULT_ROWSPEC,}));
+		
+		JLabel mcAdressLabel = new JLabel("Multicast Address:");
+		frmDistributedBackupSystem.getContentPane().add(mcAdressLabel, "4, 4");
+		
+		JLabel mdrAddressLabel = new JLabel("Multicast Restore Adress:");
+		frmDistributedBackupSystem.getContentPane().add(mdrAddressLabel, "4, 6");
+		
+		JLabel mdbAddressLabel = new JLabel("Multicast Backup Address");
+		frmDistributedBackupSystem.getContentPane().add(mdbAddressLabel, "4, 8");
+		
+		JLabel lblMaxsize = new JLabel("MaxSize (0 MB)");
+		frmDistributedBackupSystem.getContentPane().add(lblMaxsize, "4, 10");
+		
+		JSlider slider = new JSlider();
+		frmDistributedBackupSystem.getContentPane().add(slider, "6, 10");
+		
+		JLabel lblCurrentsize = new JLabel("Current Size 0 MB");
+		frmDistributedBackupSystem.getContentPane().add(lblCurrentsize, "4, 12");
+		
+		JLabel filePathLabel = new JLabel("New File Path:");
+		frmDistributedBackupSystem.getContentPane().add(filePathLabel, "4, 16");
+		
+		JButton browseFileButton = new JButton("Browse File...");
+		frmDistributedBackupSystem.getContentPane().add(browseFileButton, "6, 16");
+		
+		JButton btnBackup = new JButton("Backup");
+		btnBackup.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+			}
+		});
+		frmDistributedBackupSystem.getContentPane().add(btnBackup, "8, 16");
+		
+		JSpinner spinner = new JSpinner(new SpinnerNumberModel(1, 1, 10, 1));
+		frmDistributedBackupSystem.getContentPane().add(spinner, "10, 16");
+		
+		JComboBox comboBox = new JComboBox();
+		frmDistributedBackupSystem.getContentPane().add(comboBox, "4, 20, 7, 1, fill, default");
+		
+		JButton btnRestore = new JButton("Restore...");
+		btnRestore.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+			}
+		});
+		frmDistributedBackupSystem.getContentPane().add(btnRestore, "6, 22");
+		
+		JButton btnRemove = new JButton("Remove");
+		frmDistributedBackupSystem.getContentPane().add(btnRemove, "8, 22");
+		
+		JButton btnSaveFileList = new JButton("Save file list...");
+		frmDistributedBackupSystem.getContentPane().add(btnSaveFileList, "6, 26, 3, 1");
+	}
+
+}
