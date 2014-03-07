@@ -29,23 +29,29 @@ public class StartWindow {
 	 * Launch the application.
 	 */
 	public static void main(String[] args) {
+		
+		final Processor p = new Processor(args);
+		
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					StartWindow window = new StartWindow();
+					StartWindow window = new StartWindow(p);
 					window.frmDistributedBackupSystem.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
 			}
 		});
+		
+		p.process();
+		
 	}
 
 	/**
 	 * Create the application.
 	 */
-	public StartWindow() {
-		core = new Processor();
+	public StartWindow(Processor core) {
+		this.core = core;
 		initialize();
 	}
 
