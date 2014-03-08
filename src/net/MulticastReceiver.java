@@ -4,6 +4,8 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 
+import core.Processor;
+
 public class MulticastReceiver extends Thread {
 
 	private static final int BUFSIZE=65000;
@@ -11,10 +13,12 @@ public class MulticastReceiver extends Thread {
 	private String addr;
 	private int port;
 	private boolean end;
+	private Processor processor;
 
-	public MulticastReceiver(String addr, int port) {
+	public MulticastReceiver(String addr, int port, Processor processor) {
 		this.addr = addr;
 		this.port = port;
+		this.processor = processor;
 		end = false;
 	}
 
@@ -22,7 +26,7 @@ public class MulticastReceiver extends Thread {
 	public void run() {
 		try{
 
-			MulticastSocket socket = new MulticastSocket(port);
+			socket = new MulticastSocket(port);
 			InetAddress iaddr = InetAddress.getByName(addr);
 			socket.joinGroup(iaddr);
 
@@ -32,7 +36,7 @@ public class MulticastReceiver extends Thread {
 			while(!end)
 			{
 				socket.receive(packet);
-				processHeader(buf);
+				processMessage(buf,packet.getLength());
 			}
 
 			socket.leaveGroup(iaddr);
@@ -44,8 +48,8 @@ public class MulticastReceiver extends Thread {
 		}
 	}
 	
-	public String processHeader(byte[] buf) {
-		// 
-		return "";
+	private void processMessage(byte[] buf, int size) {
+		Message msg = new Message(buf,size);
+		processor.newInputMessage(msg);
 	}
 }

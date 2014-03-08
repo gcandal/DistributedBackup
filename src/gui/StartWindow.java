@@ -19,6 +19,7 @@ import javax.swing.SpinnerNumberModel;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import javax.swing.JSlider;
+import javax.swing.JTextArea;
 
 public class StartWindow {
 
@@ -61,7 +62,7 @@ public class StartWindow {
 	private void initialize() {
 		frmDistributedBackupSystem = new JFrame();
 		frmDistributedBackupSystem.setTitle("Distributed Backup System");
-		frmDistributedBackupSystem.setBounds(100, 100, 563, 354);
+		frmDistributedBackupSystem.setBounds(100, 100, 563, 464);
 		frmDistributedBackupSystem.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmDistributedBackupSystem.getContentPane().setLayout(new FormLayout(new ColumnSpec[] {
 				FormFactory.RELATED_GAP_COLSPEC,
@@ -102,6 +103,8 @@ public class StartWindow {
 				FormFactory.RELATED_GAP_ROWSPEC,
 				FormFactory.DEFAULT_ROWSPEC,
 				FormFactory.RELATED_GAP_ROWSPEC,
+				RowSpec.decode("max(74dlu;default):grow"),
+				FormFactory.RELATED_GAP_ROWSPEC,
 				FormFactory.DEFAULT_ROWSPEC,}));
 		
 		JLabel mcAdressLabel = new JLabel("Multicast Address:");
@@ -117,7 +120,7 @@ public class StartWindow {
 		frmDistributedBackupSystem.getContentPane().add(lblMaxsize, "4, 10");
 		
 		JSlider slider = new JSlider();
-		frmDistributedBackupSystem.getContentPane().add(slider, "6, 10");
+		frmDistributedBackupSystem.getContentPane().add(slider, "6, 10, 5, 1");
 		
 		JLabel lblCurrentsize = new JLabel("Current Size 0 MB");
 		frmDistributedBackupSystem.getContentPane().add(lblCurrentsize, "4, 12");
@@ -128,15 +131,15 @@ public class StartWindow {
 		JButton browseFileButton = new JButton("Browse File...");
 		frmDistributedBackupSystem.getContentPane().add(browseFileButton, "6, 16");
 		
+		JSpinner spinner = new JSpinner(new SpinnerNumberModel(1, 1, 10, 1));
+		frmDistributedBackupSystem.getContentPane().add(spinner, "8, 16");
+		
 		JButton btnBackup = new JButton("Backup");
 		btnBackup.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 			}
 		});
-		frmDistributedBackupSystem.getContentPane().add(btnBackup, "8, 16");
-		
-		JSpinner spinner = new JSpinner(new SpinnerNumberModel(1, 1, 10, 1));
-		frmDistributedBackupSystem.getContentPane().add(spinner, "10, 16");
+		frmDistributedBackupSystem.getContentPane().add(btnBackup, "10, 16");
 		
 		JComboBox comboBox = new JComboBox();
 		frmDistributedBackupSystem.getContentPane().add(comboBox, "4, 20, 7, 1, fill, default");
@@ -146,13 +149,15 @@ public class StartWindow {
 			public void actionPerformed(ActionEvent e) {
 			}
 		});
-		frmDistributedBackupSystem.getContentPane().add(btnRestore, "6, 22");
+		frmDistributedBackupSystem.getContentPane().add(btnRestore, "8, 22");
 		
 		JButton btnRemove = new JButton("Remove");
-		frmDistributedBackupSystem.getContentPane().add(btnRemove, "8, 22");
+		frmDistributedBackupSystem.getContentPane().add(btnRemove, "10, 22");
 		
-		JButton btnSaveFileList = new JButton("Save file list...");
-		frmDistributedBackupSystem.getContentPane().add(btnSaveFileList, "6, 26, 3, 1");
+		JTextArea textArea = new JTextArea();
+		textArea.setEditable(false);
+		textArea.setLineWrap(true);
+		frmDistributedBackupSystem.getContentPane().add(textArea, "4, 26, 7, 1, fill, fill");
 	}
 
 }
