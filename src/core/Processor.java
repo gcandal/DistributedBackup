@@ -89,5 +89,10 @@ public class Processor {
 	public void setSpaceLimit(int mbLimit) {
 
 	}
+	
+	public void restoreFile(String fileName, String newLocation)
+	{
+		
+	}
 
 }
