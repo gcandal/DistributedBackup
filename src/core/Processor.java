@@ -38,7 +38,7 @@ public class Processor {
 
 	public void newInputMessage(Message message) {
 		messageQueue.add(message);
-		messageQueue.notify();
+		//messageQueue.notify();
 	}
 
 	public void process() {
@@ -49,10 +49,12 @@ public class Processor {
 		mdbSender.start();
 		mdrSender.start();
 		while (true) {
-			try {
-				messageQueue.wait();
+			/*try {
+				synchronized (messageQueue) {
+					messageQueue.wait();
+				}
 			} catch (InterruptedException e) {
-			}
+			}*/
 			Message msg = messageQueue.poll();
 			if (msg != null) { // empty queue
 

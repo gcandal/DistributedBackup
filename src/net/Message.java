@@ -26,6 +26,29 @@ public class Message {
 	
 	private void process(byte[] input, int size) // the size is smaller than the length of the byte array
 	{
+		char[] header = new char[100];
+		int i;
+		for(i = 0; i < input.length; i++)
+		{
+			if(input[i]=='\r' && input[i+1]=='\n' && input[i+2]=='\r' && input[i+3]=='\n')
+				break;
+			
+			header[i] = (char) input[i];
+		}
+		
+		String headerstr = String.valueOf(header, 0, i);
+		
+		System.out.println(headerstr);
+		
+		String[] inputs = headerstr.split(" ");
+		
+		//TODO check if valid
+		messageType = inputs[0];
+		version = Float.parseFloat(inputs[1]);
+		fileId = hexStringToByteArray(inputs[2]);
+		
+		
+		
 		//find crlfcrlf
 		// separate data from header
 		// convert to types and store
@@ -123,6 +146,16 @@ public class Message {
 	        hexChars[j * 2 + 1] = hexArray[v & 0x0F];
 	    }
 	    return new String(hexChars);
+	}
+	
+	public static byte[] hexStringToByteArray(String s) {
+	    int len = s.length();
+	    byte[] data = new byte[len / 2];
+	    for (int i = 0; i < len; i += 2) {
+	        data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+	                             + Character.digit(s.charAt(i+1), 16));
+	    }
+	    return data;
 	}
 	
 
