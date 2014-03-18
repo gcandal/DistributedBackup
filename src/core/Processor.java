@@ -232,16 +232,16 @@ public class Processor {
 	}
 
 	public void addFile(String fileName, int repDeg) {
-
+		//TODO break in chunks & add to chunks queue
 	}
 
 	public void setSpaceLimit(int mbLimit) {
-
+		//TODO if necessary add msgs to sending queue?
 	}
 	
 	public void restoreFile(String fileName, String newLocation)
 	{
-		
+		//TODO
 	}
 	
 	public String[] getMyFiles(){
