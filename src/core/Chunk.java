@@ -1,6 +1,8 @@
 package core;
-
 import java.util.HashSet;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class Chunk {
 
@@ -111,4 +113,11 @@ public class Chunk {
 		this.mine = mine;
 	}
 	
+	public void save(byte[] data) throws IOException {
+		File to = new File(Message.bytesToHex(fileId) + chunkNo);
+		to.createNewFile();
+		FileOutputStream toStream = new FileOutputStream(to);
+		toStream.write(data);
+		toStream.close();
+	}
 }

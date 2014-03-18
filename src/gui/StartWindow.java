@@ -1,42 +1,51 @@
 package gui;
 
 import java.awt.EventQueue;
-
-import javax.swing.JFrame;
-import com.jgoodies.forms.layout.FormLayout;
-import com.jgoodies.forms.layout.ColumnSpec;
-import com.jgoodies.forms.layout.RowSpec;
-import com.jgoodies.forms.factories.FormFactory;
-
-import core.Processor;
-
-import javax.swing.JLabel;
-import javax.swing.JButton;
-import javax.swing.JSpinner;
-import javax.swing.JComboBox;
-import javax.swing.SpinnerNumberModel;
-
-import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JSlider;
+import javax.swing.JSpinner;
 import javax.swing.JTextArea;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
+import utils.ChunkManager;
+
+import com.jgoodies.forms.factories.FormFactory;
+import com.jgoodies.forms.layout.ColumnSpec;
+import com.jgoodies.forms.layout.FormLayout;
+import com.jgoodies.forms.layout.RowSpec;
+
+import core.Message;
+import core.Processor;
 
 public class StartWindow {
 
 	private Processor core;
 	private JFrame frmDistributedBackupSystem;
+	private final int DEFAULT_MAX_SIZE = 50;
+	private final JFileChooser fc = new JFileChooser();
 
 	/**
 	 * Launch the application.
 	 */
-	public static void main(String[] args) {
+	public static void main(final String[] args) {
 		
 		final Processor p = new Processor(args);
+		System.out.println(Message.bytesToHex(ChunkManager.fileToSHA256("forms-1.3.0.jar")));
 		
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					StartWindow window = new StartWindow(p);
+					StartWindow window = new StartWindow(p, args);
 					window.frmDistributedBackupSystem.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -51,15 +60,15 @@ public class StartWindow {
 	/**
 	 * Create the application.
 	 */
-	public StartWindow(Processor core) {
+	public StartWindow(Processor core, String[] args) {
 		this.core = core;
-		initialize();
+		initialize(args);
 	}
 
 	/**
 	 * Initialize the contents of the frame.
 	 */
-	private void initialize() {
+	private void initialize(String[] args) {
 		frmDistributedBackupSystem = new JFrame();
 		frmDistributedBackupSystem.setTitle("Distributed Backup System");
 		frmDistributedBackupSystem.setBounds(100, 100, 563, 464);
@@ -107,25 +116,34 @@ public class StartWindow {
 				FormFactory.RELATED_GAP_ROWSPEC,
 				FormFactory.DEFAULT_ROWSPEC,}));
 		
-		JLabel mcAdressLabel = new JLabel("Multicast Address:");
+		JLabel mcAdressLabel = new JLabel("Multicast Address: " + args[0] +
+				":" + args[1]);
 		frmDistributedBackupSystem.getContentPane().add(mcAdressLabel, "4, 4");
 		
-		JLabel mdrAddressLabel = new JLabel("Multicast Restore Adress:");
+		JLabel mdrAddressLabel = new JLabel("Multicast Restore Adress: " + args[2] +
+				":" + args[3]);
 		frmDistributedBackupSystem.getContentPane().add(mdrAddressLabel, "4, 6");
 		
-		JLabel mdbAddressLabel = new JLabel("Multicast Backup Address");
+		JLabel mdbAddressLabel = new JLabel("Multicast Backup Address "  + args[4] +
+				":" + args[5]);
 		frmDistributedBackupSystem.getContentPane().add(mdbAddressLabel, "4, 8");
 		
-		JLabel lblMaxsize = new JLabel("MaxSize (0 MB)");
+		final JLabel lblMaxsize = new JLabel("MaxSize ("+DEFAULT_MAX_SIZE+" MB)");
 		frmDistributedBackupSystem.getContentPane().add(lblMaxsize, "4, 10");
 		
-		JSlider slider = new JSlider();
+		final JSlider slider = new JSlider();
+		slider.setValue(DEFAULT_MAX_SIZE);
+		slider.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent arg0) {
+				lblMaxsize.setText("MaxSize (" + slider.getValue() + " MB)");
+			}
+		});
 		frmDistributedBackupSystem.getContentPane().add(slider, "6, 10, 5, 1");
 		
 		JLabel lblCurrentsize = new JLabel("Current Size 0 MB");
 		frmDistributedBackupSystem.getContentPane().add(lblCurrentsize, "4, 12");
 		
-		JLabel filePathLabel = new JLabel("New File Path:");
+		final JLabel filePathLabel = new JLabel("New File Path:");
 		frmDistributedBackupSystem.getContentPane().add(filePathLabel, "4, 16");
 		
 		JButton browseFileButton = new JButton("Browse File...");
@@ -141,7 +159,7 @@ public class StartWindow {
 		});
 		frmDistributedBackupSystem.getContentPane().add(btnBackup, "10, 16");
 		
-		JComboBox comboBox = new JComboBox();
+		JComboBox<String> comboBox = new JComboBox<String>();
 		frmDistributedBackupSystem.getContentPane().add(comboBox, "4, 20, 7, 1, fill, default");
 		
 		JButton btnRestore = new JButton("Restore...");
@@ -158,6 +176,19 @@ public class StartWindow {
 		textArea.setEditable(false);
 		textArea.setLineWrap(true);
 		frmDistributedBackupSystem.getContentPane().add(textArea, "4, 26, 7, 1, fill, fill");
+		
+		browseFileButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+		        int returnVal = fc.showOpenDialog(frmDistributedBackupSystem.getContentPane());
+
+			        if (returnVal == JFileChooser.APPROVE_OPTION) {
+			            File file = fc.getSelectedFile();
+			            
+			            if(file != null)
+			            	filePathLabel.setText("New file path: " + file.getAbsolutePath());
+			        }
+			}
+		});
 	}
 
 }
