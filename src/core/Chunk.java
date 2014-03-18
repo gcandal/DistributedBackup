@@ -1,5 +1,9 @@
 package core;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
 public class Chunk {
 
 	private byte[] fileId;
@@ -49,5 +53,11 @@ public class Chunk {
 		return hash;
 	}
 
-
+	public void save(byte[] data) throws IOException {
+		File to = new File(Message.bytesToHex(fileId) + chunkNo);
+		to.createNewFile();
+		FileOutputStream toStream = new FileOutputStream(to);
+		toStream.write(data);
+		toStream.close();
+	}
 }

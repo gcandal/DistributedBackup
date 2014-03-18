@@ -141,7 +141,7 @@ public class StartWindow {
 		});
 		frmDistributedBackupSystem.getContentPane().add(btnBackup, "10, 16");
 		
-		JComboBox comboBox = new JComboBox();
+		JComboBox<String> comboBox = new JComboBox<String>();
 		frmDistributedBackupSystem.getContentPane().add(comboBox, "4, 20, 7, 1, fill, default");
 		
 		JButton btnRestore = new JButton("Restore...");
