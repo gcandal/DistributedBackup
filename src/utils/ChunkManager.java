@@ -116,8 +116,9 @@ public class ChunkManager {
 		}
 
 		File file = new File(filePath);
+		String text = String.valueOf(file.lastModified()) + file.getName();
 		
-		md.update(String.valueOf(file.lastModified()).getBytes());
+		md.update(text.getBytes());
 
 		return md.digest();
 	}
