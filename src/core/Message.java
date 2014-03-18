@@ -1,18 +1,24 @@
-package net;
+package core;
 
-import core.Processor;
+import java.util.Random;
+
 
 public class Message {
 
 	private String messageType;
 	private float version;
 	private byte[] fileId;
-	private String chunkNo;
+	private int chunkNo;
 	private int replicationDeg=-1;
 	private byte[] body;
 	private String senderIp; //???
+	private long timestamp;
+	private long randomDelay;
 	
-	public Message(byte[] input, int size) {
+	public Message(byte[] input, int size) throws Exception {
+		timestamp = System.currentTimeMillis();
+		Random r = new Random();
+		randomDelay = r.nextLong()%400;
 		process(input,size);
 	}
 
@@ -21,11 +27,15 @@ public class Message {
 		messageType=msg;
 		this.version=version;
 		this.fileId=fileId;
-		this.chunkNo=Integer.toString(chunkNo);
+		this.chunkNo=chunkNo;
 	}
 	
-	private void process(byte[] input, int size) // the size is smaller than the length of the byte array
+	private void process(byte[] input, int size) throws Exception // the size is smaller than the length of the byte array
 	{
+		
+		if(input.length < size)
+			throw new Exception();
+		
 		char[] header = new char[100];
 		int i;
 		for(i = 0; i < input.length; i++)
@@ -46,12 +56,22 @@ public class Message {
 		messageType = inputs[0];
 		version = Float.parseFloat(inputs[1]);
 		fileId = hexStringToByteArray(inputs[2]);
+		chunkNo = Integer.parseInt(inputs[3]);
 		
+		if(messageType=="PUTCHUNK")
+		{
+			replicationDeg=Integer.parseInt(inputs[4]);
+		}
 		
-		
-		//find crlfcrlf
-		// separate data from header
-		// convert to types and store
+		if(messageType=="PUTCHUNK" || messageType=="CHUNK")
+		{
+			int bodysize = size - i - 4;
+			body = new byte[bodysize];
+			for(int j = 0; j < bodysize; j++)
+			{
+				body[j] = input[i+4+j];
+			}
+		}
 	}
 	
 	public byte[] buildBuffer()
@@ -105,11 +125,11 @@ public class Message {
 		this.fileId = fileId;
 	}
 
-	public String getChunkNo() {
+	public int getChunkNo() {
 		return chunkNo;
 	}
 
-	public void setChunkNo(String chunkNo) {
+	public void setChunkNo(int chunkNo) {
 		this.chunkNo = chunkNo;
 	}
 
@@ -157,6 +177,10 @@ public class Message {
 	    }
 	    return data;
 	}
-	
+
+	public boolean ready() {
+		long dif = System.currentTimeMillis() - (timestamp + randomDelay);
+		return (dif>0);
+	}
 
 }

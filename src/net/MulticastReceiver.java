@@ -4,6 +4,7 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 
+import core.Message;
 import core.Processor;
 
 public class MulticastReceiver extends Thread {
@@ -49,7 +50,13 @@ public class MulticastReceiver extends Thread {
 	}
 	
 	private void processMessage(byte[] buf, int size) {
-		Message msg = new Message(buf,size);
-		processor.newInputMessage(msg);
+		Message msg;
+		try {
+			msg = new Message(buf,size);
+			processor.newInputMessage(msg);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 }

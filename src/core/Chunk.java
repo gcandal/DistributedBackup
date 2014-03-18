@@ -3,13 +3,13 @@ package core;
 public class Chunk {
 
 	private byte[] fileId;
-	private String chunkNo;
+	private int chunkNo;
 	private int replicationDeg;
 	private int counter;
 	
-	public Chunk(byte[] fileId, String chunkNo, int replicationDeg) {
+	public Chunk(byte[] fileId, int i, int replicationDeg) {
 		this.fileId = fileId;
-		this.chunkNo = chunkNo;
+		this.chunkNo = i;
 		this.replicationDeg = replicationDeg;
 		this.counter = 0;
 	}
@@ -18,7 +18,7 @@ public class Chunk {
 		return fileId;
 	}
 
-	public String getChunkNo() {
+	public int getChunkNo() {
 		return chunkNo;
 	}
 
@@ -36,6 +36,17 @@ public class Chunk {
 	
 	public int getCounter() {
 		return counter;
+	}
+	
+	public byte[] getHash()
+	{
+		String num = "";
+		num += chunkNo;
+		byte[] cnum = num.getBytes();
+		byte[] hash = new byte[cnum.length + fileId.length];
+		System.arraycopy(fileId, 0, hash, 0, fileId.length);
+		System.arraycopy(cnum, 0, hash, fileId.length, cnum.length);
+		return hash;
 	}
 
 

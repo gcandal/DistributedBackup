@@ -5,6 +5,8 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 
+import core.Message;
+
 public class MulticastSender {
 
 	private static final int TTL = 1;

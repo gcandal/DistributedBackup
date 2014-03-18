@@ -3,14 +3,12 @@ package core;
 import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
-import net.Message;
 import net.MulticastReceiver;
 import net.MulticastSender;
 
 public class Processor {
 
-	public static final String version = "1.0";
+	public static final float version = (float) 1.0;
 	private MulticastReceiver mcReceiver;
 	private MulticastReceiver mdbReceiver;
 	private MulticastReceiver mdrReceiver;
@@ -58,12 +56,48 @@ public class Processor {
 			Message msg = messageQueue.poll();
 			if (msg != null) { // empty queue
 
+				switch(msg.getMessageType())
+				{
+				case "PUTCHUNK":
+				{
+					processPutChunk(msg);
+				}
+				case "STORED":
+				{
+					
+				}
+				case "CHUNK":
+				{
+					
+				}
+				case "GETCHUNK":
+				{
+					
+				}
+				}
+				
 				// exemplo acesso a hashmap
 				synchronized (chunks) {
 					// ...
 				}
 
 			}
+		}
+	}
+
+	private void processPutChunk(Message msg) {
+		if(msg.ready())
+		{
+			Message newMsg = new Message("STORED", version, msg.getFileId(), msg.getChunkNo());
+			mcSender.send(newMsg);
+			Chunk chunk = new Chunk(msg.getFileId(), msg.getChunkNo(), msg.getReplicationDeg());
+			//TODO Store chunk in disk
+			synchronized (chunks) {
+				chunks.put(chunk.getHash(), chunk);
+			}
+		}else
+		{
+			messageQueue.add(msg);
 		}
 	}
 
