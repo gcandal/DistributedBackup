@@ -11,14 +11,15 @@ public class Message {
 	private int chunkNo;
 	private int replicationDeg=-1;
 	private byte[] body;
-	private String senderIp; //???
+	private String senderIp;
 	private long timestamp;
 	private long randomDelay;
 	
-	public Message(byte[] input, int size) throws Exception {
+	public Message(byte[] input, int size, String ip) throws Exception {
 		timestamp = System.currentTimeMillis();
 		Random r = new Random();
 		randomDelay = r.nextLong()%400;
+		senderIp = ip;
 		process(input,size);
 	}
 

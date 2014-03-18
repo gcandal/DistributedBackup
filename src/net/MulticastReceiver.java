@@ -37,7 +37,7 @@ public class MulticastReceiver extends Thread {
 			while(!end)
 			{
 				socket.receive(packet);
-				processMessage(buf,packet.getLength());
+				processMessage(buf,packet.getLength(),packet.getAddress().getHostAddress());
 			}
 
 			socket.leaveGroup(iaddr);
@@ -49,10 +49,10 @@ public class MulticastReceiver extends Thread {
 		}
 	}
 	
-	private void processMessage(byte[] buf, int size) {
+	private void processMessage(byte[] buf, int size, String ip) {
 		Message msg;
 		try {
-			msg = new Message(buf,size);
+			msg = new Message(buf,size,ip);
 			processor.newInputMessage(msg);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block

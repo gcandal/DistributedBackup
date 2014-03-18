@@ -20,6 +20,7 @@ public class Processor {
 												// verificar se a data de
 												// alteracao mudou!
 	private ConcurrentLinkedQueue<Message> messageQueue;
+	private ConcurrentLinkedQueue<Chunk> waitingChunks;
 
 	public Processor(final String[] args) {
 		messageQueue = new ConcurrentLinkedQueue<>();
@@ -64,7 +65,7 @@ public class Processor {
 				}
 				case "STORED":
 				{
-					
+					processStored(msg);
 				}
 				case "CHUNK":
 				{
@@ -75,23 +76,48 @@ public class Processor {
 					
 				}
 				}
-				
-				// exemplo acesso a hashmap
-				synchronized (chunks) {
-					// ...
-				}
 
+			}
+			
+			Chunk chk = waitingChunks.poll();
+			if(chk!=null)
+			{
+				if(chk.shouldResend())
+				{
+					sendStored(chk);
+					chk.notifySent();
+				} else
+					waitingChunks.add(chk);
 			}
 		}
 	}
 
+	private void sendStored(Chunk chk) {
+		Message msg = new Message("STORED", version, chk.getFileId(), chk.getChunkNo());
+		mcSender.send(msg);
+	}
+
+	private void processStored(Message msg) {
+
+		byte[] key = Chunk.getHash(msg.getFileId(), msg.getChunkNo());
+		
+		Chunk c = chunks.get(key);
+		if(c!=null)
+			c.addHostWithChunk(msg.getSenderIp());
+		
+	}
+
 	private void processPutChunk(Message msg) {
+		
+		//TODO check if I already have file
+		
 		if(msg.ready())
 		{
 			Message newMsg = new Message("STORED", version, msg.getFileId(), msg.getChunkNo());
 			mcSender.send(newMsg);
-			Chunk chunk = new Chunk(msg.getFileId(), msg.getChunkNo(), msg.getReplicationDeg());
+			Chunk chunk = new Chunk(msg.getFileId(), msg.getChunkNo(), msg.getReplicationDeg(),msg.getSenderIp());
 			//TODO Store chunk in disk
+			msg.getBody();
 			synchronized (chunks) {
 				chunks.put(chunk.getHash(), chunk);
 			}
