@@ -75,18 +75,14 @@ public class Chunk {
 		return hostsWithChunk.size();
 	}
 	
+	
+	
 	public byte[] getHash()
 	{
-		String num = "";
-		num += chunkNo;
-		byte[] cnum = num.getBytes();
-		byte[] hash = new byte[cnum.length + fileId.length];
-		System.arraycopy(fileId, 0, hash, 0, fileId.length);
-		System.arraycopy(cnum, 0, hash, fileId.length, cnum.length);
-		return hash;
+		return getHash(fileId, chunkNo);
 	}
 	
-	public static byte[] getHash(byte[] fileId, int chunkNo)
+	public static byte[] getHash(byte[] fileId, int chunkNo) //TODO missing leading 0
 	{
 		String num = "";
 		num += chunkNo;
@@ -119,5 +115,14 @@ public class Chunk {
 		FileOutputStream toStream = new FileOutputStream(to);
 		toStream.write(data);
 		toStream.close();
+	}
+
+	public byte[] load() {
+		// TODO Ler chunk do disco
+		return null;
+	}
+
+	public void removeHostWithChunk(String senderIp) {
+		hostsWithChunk.remove(senderIp);		
 	}
 }

@@ -57,7 +57,8 @@ public class Message {
 		messageType = inputs[0];
 		version = Float.parseFloat(inputs[1]);
 		fileId = hexStringToByteArray(inputs[2]);
-		chunkNo = Integer.parseInt(inputs[3]);
+		if(!messageType.equals("DELETE"))
+			chunkNo = Integer.parseInt(inputs[3]);
 		
 		if(messageType=="PUTCHUNK")
 		{
