@@ -63,6 +63,18 @@ public class ChunkManager {
 
 		toStream.close();
 	}
+	
+	public static void deleteChunks(String filepath, final String filename) {
+		File[] chunks = new File(filepath).listFiles(new FilenameFilter() {
+			@Override
+			public boolean accept(File arg0, String name) {
+				return name.matches(filename+"[0-9]{6}$");
+			}
+		});
+		
+		for(File chunk: chunks)
+			chunk.delete();
+	}
 
 	private static void writeChunk(int chunkNo, FileChannel in, String filename, long targetSize) throws IOException {
 		int position = 0;
