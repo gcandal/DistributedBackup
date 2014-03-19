@@ -13,8 +13,8 @@ public class ChunkManager {
 	private static int CHUNK_SIZE = 64000;
 	private static MessageDigest md;
 
-	public static void createChunks(String originalFilePath,
-			String destinyChunkPath) throws IOException {
+	public static long createChunks(String originalFilePath,
+			String destinyChunkPath, byte[] sha) throws IOException {
 
 		File from = new File(originalFilePath);
 		FileInputStream fromStream = new FileInputStream(from);
@@ -22,7 +22,6 @@ public class ChunkManager {
 
 		int chunkNo = 0 ;
 		long lastChunkNo = from.length() / CHUNK_SIZE;
-
 
 		while(chunkNo < lastChunkNo) {
 			writeChunk(chunkNo, in, destinyChunkPath + from.getName(), CHUNK_SIZE);
@@ -33,6 +32,10 @@ public class ChunkManager {
 
 		fromStream.close();
 		in.close();
+		
+		sha = fileToSHA256(from.getName());
+		
+		return lastChunkNo + 1;
 	}
 
 	public static void mergeChunks(String filepath, final String filename, String newFilePath) throws IOException {
@@ -43,15 +46,17 @@ public class ChunkManager {
 			}
 		});
 
-		File to = new File("coisas");
-		FileOutputStream toStream = new FileOutputStream(to);
+		File to = new File(newFilePath + filename);
+		to.delete();
+		to.createNewFile();
+		
+		FileOutputStream toStream = new FileOutputStream(to, true);
 		FileChannel out = toStream.getChannel();
 
 		for(File chunk: chunks) {
 			FileInputStream fromStream = new FileInputStream(chunk);
 			FileChannel in = fromStream.getChannel(); 
-
-			out.transferFrom(in, 0, chunk.length());
+			out.transferFrom(in, out.position(), chunk.length());
 
 			fromStream.close();
 		}

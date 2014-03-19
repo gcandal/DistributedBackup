@@ -4,6 +4,7 @@ import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.IOException;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -27,22 +28,44 @@ import com.jgoodies.forms.layout.RowSpec;
 import core.Message;
 import core.Processor;
 
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
+import javax.swing.JScrollPane;
+
 public class StartWindow {
 
+	private final int DEFAULT_MAX_SIZE = 50;
+	private static final String FROM_PATH = "./", TO_PATH = "./";
+	
 	private Processor core;
 	private JFrame frmDistributedBackupSystem;
-	private final int DEFAULT_MAX_SIZE = 50;
+	private JTextArea logs;
+	private JComboBox<String> files;
 	private final JFileChooser fc = new JFileChooser();
-	private String selectedFilePath = "";
+	private File selectedFile;
 
+	static void test() {
+		System.out.println(Message.bytesToHex(ChunkManager.fileToSHA256("forms-1.3.0.jar")));
+		byte[] sha = null;
+		final String FILENAME = "DatabaseManagementSystems.pdf";
+		
+		try {
+			System.out.println(ChunkManager.createChunks(FROM_PATH + FILENAME, TO_PATH, sha));
+			ChunkManager.mergeChunks(FROM_PATH, FILENAME, TO_PATH);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+	}
+	
 	/**
 	 * Launch the application.
 	 */
 	public static void main(final String[] args) {
 
 		final Processor p = new Processor(args);
-		System.out.println(Message.bytesToHex(ChunkManager.fileToSHA256("forms-1.3.0.jar")));
-
+		//test();
+		
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
@@ -72,7 +95,7 @@ public class StartWindow {
 	private void initialize(String[] args) {
 		frmDistributedBackupSystem = new JFrame();
 		frmDistributedBackupSystem.setTitle("Distributed Backup System");
-		frmDistributedBackupSystem.setBounds(100, 100, 563, 464);
+		frmDistributedBackupSystem.setBounds(100, 100, 588, 462);
 		frmDistributedBackupSystem.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmDistributedBackupSystem.getContentPane().setLayout(new FormLayout(new ColumnSpec[] {
 				FormFactory.RELATED_GAP_COLSPEC,
@@ -87,7 +110,7 @@ public class StartWindow {
 				ColumnSpec.decode("max(28dlu;default)"),
 				FormFactory.RELATED_GAP_COLSPEC,
 				ColumnSpec.decode("max(21dlu;default)"),},
-				new RowSpec[] {
+			new RowSpec[] {
 				FormFactory.RELATED_GAP_ROWSPEC,
 				FormFactory.DEFAULT_ROWSPEC,
 				FormFactory.RELATED_GAP_ROWSPEC,
@@ -137,6 +160,8 @@ public class StartWindow {
 		slider.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent arg0) {
 				lblMaxsize.setText("MaxSize (" + slider.getValue() + " MB)");
+				
+				core.setSpaceLimit(slider.getValue());
 			}
 		});
 		frmDistributedBackupSystem.getContentPane().add(slider, "6, 10, 5, 1");
@@ -150,53 +175,70 @@ public class StartWindow {
 		JButton browseFileButton = new JButton("Browse File...");
 		frmDistributedBackupSystem.getContentPane().add(browseFileButton, "6, 16");
 
-		JSpinner spinner = new JSpinner(new SpinnerNumberModel(1, 1, 10, 1));
+		final JSpinner spinner = new JSpinner(new SpinnerNumberModel(1, 1, 10, 1));
 		frmDistributedBackupSystem.getContentPane().add(spinner, "8, 16");
 
 		JButton btnBackup = new JButton("Backup");
-		btnBackup.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
+		btnBackup.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent arg0) {
+				core.addFile(selectedFile.getName(), (int) spinner.getValue());
 			}
 		});
 		frmDistributedBackupSystem.getContentPane().add(btnBackup, "10, 16");
 
-		JComboBox<String> comboBox = new JComboBox<String>();
-		frmDistributedBackupSystem.getContentPane().add(comboBox, "4, 20, 7, 1, fill, default");
+		files = new JComboBox<String>();
+		frmDistributedBackupSystem.getContentPane().add(files, "4, 20, 7, 1, fill, default");
 
 		JButton btnRestore = new JButton("Restore...");
-		btnRestore.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
+		btnRestore.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent arg0) {
+				core.restoreFile((String) files.getSelectedItem(), TO_PATH);
 			}
 		});
 		frmDistributedBackupSystem.getContentPane().add(btnRestore, "8, 22");
 
 		JButton btnRemove = new JButton("Remove");
+		btnRemove.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent arg0) {
+				core.removeFile((String) files.getSelectedItem());
+			}
+		});
 		frmDistributedBackupSystem.getContentPane().add(btnRemove, "10, 22");
-
-		JTextArea textArea = new JTextArea();
-		textArea.setEditable(false);
-		textArea.setLineWrap(true);
-		frmDistributedBackupSystem.getContentPane().add(textArea, "4, 26, 7, 1, fill, fill");
-		fillTextArea(textArea);
+		
+		JScrollPane scrollPane = new JScrollPane();
+		frmDistributedBackupSystem.getContentPane().add(scrollPane, "4, 26, 7, 1, fill, fill");
+		
+		logs = new JTextArea();
+		scrollPane.setViewportView(logs);
 
 		browseFileButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				int returnVal = fc.showOpenDialog(frmDistributedBackupSystem.getContentPane());
 
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
-					File file = fc.getSelectedFile();
+					selectedFile = fc.getSelectedFile();
 
-					if(file != null) {
-						selectedFilePath = file.getAbsolutePath();
-						filePathLabel.setText("New file path: " + file.getAbsolutePath());
+					if(selectedFile != null) {
+						filePathLabel.setText("New file path: " + selectedFile.getName());
 					}
 				}
 			}
 		});
-	}
-
-	private void fillTextArea(JTextArea textArea) {
 		
+		replaceFileList(new String[0]);
 	}
 
+	public void log(String text) {
+		logs.append(text + "\n");
+	}
+	
+	public void replaceFileList(String[] fileNames) {
+		files.removeAllItems();
+		
+		for(String filename: fileNames)
+			files.addItem(filename);
+	}
 }
