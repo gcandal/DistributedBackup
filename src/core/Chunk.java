@@ -1,8 +1,10 @@
 package core;
-import java.util.HashSet;
+
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.HashSet;
 
 public class Chunk {
 
@@ -117,9 +119,15 @@ public class Chunk {
 		toStream.close();
 	}
 
-	public byte[] load() {
-		// TODO Ler chunk do disco
-		return null;
+	public byte[] load() throws IOException {
+		File from = new File(Message.bytesToHex(fileId) + chunkNo);
+		FileInputStream fromStream = new FileInputStream(from);
+		
+		byte data[] = new byte[(int) from.length()];
+		fromStream.read(data);
+		fromStream.close();
+		
+		return data;
 	}
 
 	public void removeHostWithChunk(String senderIp) {
