@@ -88,7 +88,6 @@ public class Processor {
 				if(chk.shouldResend())
 				{
 					sendPutChunk(chk);
-					chk.notifySent();
 				} else
 					waitingChunks.add(chk);
 			}
@@ -176,6 +175,7 @@ public class Processor {
 		msg.setReplicationDeg(chk.getReplicationDeg());
 		msg.setBody(chk.load());
 		mcSender.send(msg);
+		chk.notifySent();
 	}
 
 	private void processStored(Message msg) {
@@ -233,6 +233,7 @@ public class Processor {
 
 	public void addFile(String fileName, int repDeg) {
 		//TODO break in chunks & add to chunks queue
+	//	sendPutChunk(chk);
 	}
 
 	public void setSpaceLimit(int mbLimit) {
