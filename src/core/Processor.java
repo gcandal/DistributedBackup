@@ -4,6 +4,7 @@ import gui.StartWindow;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -157,35 +158,22 @@ public class Processor {
 
 	private void processDelete(Message msg) {
 		
-		/*
-		Iterator<byte[]> it = chunks.keySet().iterator();
-		while (it.hasNext()) {
-			byte[] hash = it.next();
- 			boolean belongs = true;
-			for (int i = 0; i < 256; i++) {
-				if (hash[i] != msg.getFileId()[i]) {
-					belongs = false;
-					break;
-				}
-			}
-
-			if (belongs) {
-				it.remove();
-				// Delete files ---- to get byte[] for acess hashmap use
-				// Chunk.getHash(msg.getFileId(),
-				// msg.getChunkNo())
-			}
-		}
-		*/
-		
-		byte[] fileId = msg.getFileId();
-		
 		synchronized (chunks) {
-			for(Map.Entry<byte[], Chunk> entry: chunks.entrySet()) {
-				if(!equalByteArrays(entry.getKey(), fileId)) {
-					chunks.remove(entry);
-					ChunkManager.deleteChunks("./", Message.bytesToHex(entry.getValue().getFileId()));
-					// TODO "to get byte[] for acess hashmap use" ???
+			Iterator<byte[]> it = chunks.keySet().iterator();
+			while (it.hasNext()) {
+				byte[] hash = it.next();
+	 			boolean belongs = true;
+				for (int i = 0; i < 256; i++) {
+					if (hash[i] != msg.getFileId()[i]) {
+						belongs = false;
+						break;
+					}
+				}
+
+				if (belongs) {
+					it.remove();
+					ChunkManager.deleteChunks("./", Message.bytesToHex(hash));
+					// Delete files ---- to get byte[] for acess hashmap use
 					// Chunk.getHash(msg.getFileId(),
 					// msg.getChunkNo())
 				}
