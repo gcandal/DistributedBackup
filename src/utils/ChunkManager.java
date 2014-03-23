@@ -33,7 +33,9 @@ public class ChunkManager {
 		fromStream.close();
 		in.close();
 		
-		sha = fileToSHA256(from.getName());
+		byte[] newSha = fileToSHA256(from.getName());
+		for(int i = 0; i < newSha.length; i++)
+			sha[i] = newSha[i];
 		
 		return lastChunkNo + 1;
 	}

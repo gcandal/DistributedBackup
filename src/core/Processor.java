@@ -373,7 +373,7 @@ public class Processor {
 
 	public void addFile(String fileName, int repDeg) {
 		//  break in chunks, add fileID to myfiles, add chunks to hash
-		byte[] sha = null;
+		byte[] sha = new byte[32];
 		long nrChunks = 0;
 		
 		try {
