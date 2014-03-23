@@ -64,16 +64,22 @@ public class ChunkManager {
 		toStream.close();
 	}
 	
-	public static void deleteChunks(String filepath, final String filename) {
+	public static long deleteChunks(String filepath, final String filename) {
+		long freedSpace = 0;
+		
 		File[] chunks = new File(filepath).listFiles(new FilenameFilter() {
 			@Override
 			public boolean accept(File arg0, String name) {
-				return name.matches(filename+"[0-9]{6}$");
+				return name.matches("^" + filename + "[0-9]{6}$");
 			}
 		});
 		
-		for(File chunk: chunks)
+		for(File chunk: chunks) {
+			freedSpace += chunk.length();
 			chunk.delete();
+		}
+		
+		return freedSpace;
 	}
 
 	private static void writeChunk(int chunkNo, FileChannel in, String filename, long targetSize) throws IOException {
@@ -138,5 +144,40 @@ public class ChunkManager {
 		md.update(text.getBytes());
 
 		return md.digest();
+	}
+	
+	public static long getFolderSize(String path) {
+        long folderSize = 0;
+        File[] fileList = new File(path).listFiles();
+        
+        for(File file: fileList)
+        	folderSize += file.length();
+        
+        return folderSize;
+    }
+	
+	public static long deleteFirstChunk(String path, String[] results) {
+		File[] fileList = new File(path).listFiles();
+		File chunkToDelete = fileList[0];
+		long size = chunkToDelete.length();
+		
+		String fileName = chunkToDelete.getName();
+		results[0] = fileName.substring(0, fileName.length()-6);
+		results[1] = fileName.substring(fileName.length()-6);
+		
+		chunkToDelete.delete();
+		
+		return size;
+	}
+	
+	public static long countChunks(String path, final String fileName) {
+		File[] chunks = new File(path).listFiles(new FilenameFilter() {
+			@Override
+			public boolean accept(File arg0, String name) {
+				return name.matches("^" + fileName + "[0-9]{6}$");
+			}
+		});
+		
+		return (long) chunks.length;
 	}
 }

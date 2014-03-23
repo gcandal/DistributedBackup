@@ -8,6 +8,7 @@ public class Message {
 	private String messageType;
 	private float version;
 	private byte[] fileId;
+	private String fileIdString = "";
 	private int chunkNo;
 	private int replicationDeg=-1;
 	private byte[] body;
@@ -28,6 +29,19 @@ public class Message {
 		messageType=msg;
 		this.version=version;
 		this.fileId=fileId;
+		this.chunkNo=chunkNo;
+	}
+	
+	public Message(byte[] newFileId) {
+		messageType = "DELETE";
+		
+		fileId = newFileId;
+	}
+	
+	public Message(String msg, float version, String fileId, int chunkNo) {
+		messageType=msg;
+		this.version=version;
+		fileIdString=fileId;
 		this.chunkNo=chunkNo;
 	}
 	
@@ -82,9 +96,20 @@ public class Message {
 		
 		sb.append(messageType);
 		sb.append(" ");
+		
+		if(messageType.equals("DELETE")) {
+			sb.append(bytesToHex(fileId));
+			sb.append("\r\n\r\n");
+			
+			return sb.toString().getBytes();
+		}
+		
 		sb.append(Processor.version);
 		sb.append(" ");
-		sb.append(bytesToHex(fileId));
+		if(fileIdString.equals(""))
+			sb.append(bytesToHex(fileId));
+		else
+			sb.append(fileIdString);
 		sb.append(" ");
 		if(replicationDeg>=0)
 			sb.append(replicationDeg);

@@ -112,7 +112,7 @@ public class Chunk {
 	}
 	
 	public void save(byte[] data) throws IOException {
-		File to = new File(Message.bytesToHex(fileId) + chunkNo);
+		File to = new File("./Chunks/" + Message.bytesToHex(fileId) + chunkNo);
 		to.createNewFile();
 		FileOutputStream toStream = new FileOutputStream(to);
 		toStream.write(data);

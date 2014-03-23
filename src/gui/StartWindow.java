@@ -36,12 +36,13 @@ import javax.swing.JScrollPane;
 public class StartWindow {
 
 	private final int DEFAULT_MAX_SIZE = 50;
-	private static final String FROM_PATH = "./", TO_PATH = "./";
+	private static final String FROM_PATH = "./", TO_PATH = "./Restored/";
 	
 	private Processor core;
 	private JFrame frmDistributedBackupSystem;
 	private JTextArea logs;
 	private JComboBox<String> files;
+	JSpinner replicationDegree;
 	private final JFileChooser fc = new JFileChooser();
 	private File selectedFile;
 
@@ -58,12 +59,19 @@ public class StartWindow {
 		}
 	}
 	
+	static void test2() {
+		String[] results = new String[2];
+		ChunkManager.deleteFirstChunk("./Chunks", results);
+		System.out.println(results[0]);
+		System.out.println(results[1]);
+	}
 	/**
 	 * Launch the application.
 	 */
 	public static void main(final String[] args) {
 
 		final Processor p = new Processor(args);
+		
 		//test();
 		
 		EventQueue.invokeLater(new Runnable() {
@@ -86,6 +94,7 @@ public class StartWindow {
 	 */
 	public StartWindow(Processor core, String[] args) {
 		this.core = core;
+		core.addGui(this);
 		initialize(args);
 	}
 
@@ -175,14 +184,14 @@ public class StartWindow {
 		JButton browseFileButton = new JButton("Browse File...");
 		frmDistributedBackupSystem.getContentPane().add(browseFileButton, "6, 16");
 
-		final JSpinner spinner = new JSpinner(new SpinnerNumberModel(1, 1, 10, 1));
-		frmDistributedBackupSystem.getContentPane().add(spinner, "8, 16");
+		replicationDegree = new JSpinner(new SpinnerNumberModel(1, 1, 10, 1));
+		frmDistributedBackupSystem.getContentPane().add(replicationDegree, "8, 16");
 
 		JButton btnBackup = new JButton("Backup");
 		btnBackup.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent arg0) {
-				core.addFile(selectedFile.getName(), (int) spinner.getValue());
+				core.addFile(selectedFile.getName(), (int) replicationDegree.getValue());
 			}
 		});
 		frmDistributedBackupSystem.getContentPane().add(btnBackup, "10, 16");
@@ -240,5 +249,9 @@ public class StartWindow {
 		
 		for(String filename: fileNames)
 			files.addItem(filename);
+	}
+	
+	public int getReplicationDegree() {
+		return (int) replicationDegree.getValue();
 	}
 }

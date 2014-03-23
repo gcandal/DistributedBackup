@@ -1,17 +1,21 @@
 package core;
 
+import gui.StartWindow;
+
+import java.io.IOException;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentLinkedQueue;
+
+import utils.ChunkManager;
 import net.MulticastReceiver;
 import net.MulticastSender;
-
-//TODO geral -> adicionar syncronized a todos os acessos a chunks e myfiles
 
 public class Processor {
 
 	public static final float version = (float) 1.0;
+	private StartWindow gui;
 	private MulticastReceiver mcReceiver;
 	private MulticastReceiver mdbReceiver;
 	private MulticastReceiver mdrReceiver;
@@ -22,14 +26,18 @@ public class Processor {
 	private HashMap<byte[], String> myFiles; // fileId -> Talvez tenhamos que
 												// verificar se a data de
 												// alteracao mudou!
+	private HashMap<byte[], Long> nrChunksByFile = new HashMap<byte[], Long>();
 	private ConcurrentLinkedQueue<Message> messageQueue;
 	private ConcurrentLinkedQueue<Chunk> waitingChunks;
 	private ConcurrentLinkedQueue<Message> outgoingQueue;
 	private HashMap<byte[], String> filesToBeRestored;// -> string is new name
+	
+	private long usedSpace = 0;
 
 	public Processor(final String[] args) {
 		messageQueue = new ConcurrentLinkedQueue<>();
 		waitingChunks = new ConcurrentLinkedQueue<>();
+		outgoingQueue = new ConcurrentLinkedQueue<>();
 		mcReceiver = new MulticastReceiver(args[0], Integer.parseInt(args[1]),
 				this);
 		mdbReceiver = new MulticastReceiver(args[2], Integer.parseInt(args[3]),
@@ -41,6 +49,10 @@ public class Processor {
 		mdrSender = new MulticastSender(args[4], Integer.parseInt(args[5]));
 	}
 
+	public void addGui(StartWindow newGui) {
+		gui = newGui;
+	}
+	
 	public void newInputMessage(Message message) {
 		messageQueue.add(message);
 	}
@@ -112,9 +124,13 @@ public class Processor {
 
 	private void processRemoved(Message msg) { // is kept in line till random
 												// delay
-
-		Chunk chk = chunks
-				.get(Chunk.getHash(msg.getFileId(), msg.getChunkNo()));
+		Chunk chk;
+		
+		synchronized (chunks) {
+			chk = chunks
+					.get(Chunk.getHash(msg.getFileId(), msg.getChunkNo()));
+		}
+		
 		if (chk == null)
 			return;
 
@@ -123,7 +139,16 @@ public class Processor {
 			Message newMsg = new Message("PUTCHUNK", version, msg.getFileId(),
 					msg.getChunkNo());
 			newMsg.setReplicationDeg(chk.getReplicationDeg());
-			newMsg.setBody(chk.load());
+			
+			try {
+				newMsg.setBody(chk.load());
+			} catch (IOException e) {
+				gui.log("Couldn't load chunk's " + chk.getFileId() + chk.getChunkNo() + " body, re-adding to queue");
+				messageQueue.add(msg);
+				
+				return;
+			}
+			
 			mdbSender.send(newMsg);
 		} else
 			messageQueue.add(msg);
@@ -131,10 +156,12 @@ public class Processor {
 	}
 
 	private void processDelete(Message msg) {
+		
+		/*
 		Iterator<byte[]> it = chunks.keySet().iterator();
 		while (it.hasNext()) {
 			byte[] hash = it.next();
-			boolean belongs = true;
+ 			boolean belongs = true;
 			for (int i = 0; i < 256; i++) {
 				if (hash[i] != msg.getFileId()[i]) {
 					belongs = false;
@@ -144,23 +171,65 @@ public class Processor {
 
 			if (belongs) {
 				it.remove();
-				// TODO Delete files ---- to get byte[] for acess hashmap use
+				// Delete files ---- to get byte[] for acess hashmap use
 				// Chunk.getHash(msg.getFileId(),
 				// msg.getChunkNo())
 			}
 		}
+		*/
+		
+		byte[] fileId = msg.getFileId();
+		
+		synchronized (chunks) {
+			for(Map.Entry<byte[], Chunk> entry: chunks.entrySet()) {
+				if(!equalByteArrays(entry.getKey(), fileId)) {
+					chunks.remove(entry);
+					ChunkManager.deleteChunks("./", Message.bytesToHex(entry.getValue().getFileId()));
+					// TODO "to get byte[] for acess hashmap use" ???
+					// Chunk.getHash(msg.getFileId(),
+					// msg.getChunkNo())
+				}
+			}
+		}
+		
+	}
+	
+	private boolean equalByteArrays(byte[] first, byte[] second) {
+		if(first.length != second.length)
+			return false;
+		
+		for(int i = 0; i < first.length; i++)
+			if(first[i] != second[i])
+				return false;
+		
+		return true;
 	}
 
 	private void processChunk(Message msg) { // if chunk is received, kills
 												// waiting getchunk message
-		Chunk chk = chunks
-				.get(Chunk.getHash(msg.getFileId(), msg.getChunkNo()));
+		Chunk chk;
+		
+		synchronized (chunks) {
+			chk = chunks
+					.get(Chunk.getHash(msg.getFileId(), msg.getChunkNo()));
+		}
+		
 		if (chk == null)
 			return;
 
 		if (chk.isMine()) {
-			// TODO write to disk -> if all chunks are present, merge file with
+			// write to disk -> if all chunks are present, merge file with
 			// name in filesToBeRestored
+			byte[] sha = chk.getHash();
+			String filename = Message.bytesToHex(sha);
+			
+			if(ChunkManager.countChunks("./Chunks", filename) == nrChunksByFile.get(sha)) {
+				try {
+					ChunkManager.mergeChunks("./Chunks", filename, "./Restored/");
+				} catch (IOException e) {
+					gui.log("Couldn't restore " + filename);
+				}
+			}
 		} else { // Remove get chunk msg if in queue
 			for (Message m : messageQueue) {
 				if (m.getMessageType() == "CHUNK"
@@ -177,14 +246,28 @@ public class Processor {
 	private void processGetChunk(Message msg) { // is kept in line till random
 												// delay
 		if (msg.ready()) {
-			Chunk chk = chunks.get(Chunk.getHash(msg.getFileId(),
-					msg.getChunkNo()));
+			Chunk chk; 
+			
+			synchronized (chunks) {
+				chk = chunks.get(Chunk.getHash(msg.getFileId(),
+						msg.getChunkNo()));
+			}
+			
 			if (chk == null)
 				return;
 
 			Message newMsg = new Message("CHUNK", version, msg.getFileId(),
 					msg.getChunkNo());
-			newMsg.setBody(chk.load());
+			
+			try {
+				newMsg.setBody(chk.load());
+			} catch (IOException e) {
+				gui.log("Couldn't load chunk's " + chk.getFileId() + chk.getChunkNo() + " body, re-adding to queue");
+				messageQueue.add(msg);
+				
+				return;
+			}
+			
 			mdrSender.send(newMsg);
 		} else
 			messageQueue.add(msg);
@@ -194,7 +277,15 @@ public class Processor {
 		Message msg = new Message("PUTCHUNK", version, chk.getFileId(),
 				chk.getChunkNo());
 		msg.setReplicationDeg(chk.getReplicationDeg());
-		msg.setBody(chk.load());
+		
+		try {
+			msg.setBody(chk.load());
+		} catch (IOException e) {
+			gui.log("Couldn't load chunk's " + chk.getFileId() + chk.getChunkNo() + " body, skipping this save");
+			
+			return;
+		}
+		
 		outgoingQueue.add(msg);
 		chk.notifySent();
 	}
@@ -203,7 +294,11 @@ public class Processor {
 
 		byte[] key = Chunk.getHash(msg.getFileId(), msg.getChunkNo());
 
-		Chunk c = chunks.get(key);
+		Chunk c;
+		
+		synchronized (chunks) {
+			c =chunks.get(key);
+		}
 		if (c != null)
 			c.addHostWithChunk(msg.getSenderIp());
 
@@ -217,11 +312,25 @@ public class Processor {
 					msg.getChunkNo());
 			mcSender.send(newMsg);
 
-			if (!myFiles.containsKey(msg.getFileId())) {
+			synchronized (myFiles) {
+				if(!myFiles.containsKey(msg.getFileId()))
+					return;
+			}
+			
+			if (usedSpace + msg.getBody().length <= gui.getReplicationDegree()) {
 				Chunk chunk = new Chunk(msg.getFileId(), msg.getChunkNo(),
 						msg.getReplicationDeg(), msg.getSenderIp());
-				// TODO Store chunk in disk
-				msg.getBody();
+			
+				try {
+					chunk.save(msg.getBody());
+				} catch (IOException e) {
+					gui.log("Couldn't write " + chunk.getFileId() + chunk.getChunkNo() + " to disk, re-adding to queue");
+					messageQueue.add(msg);
+					
+					return;
+				}
+				
+				usedSpace += msg.getBody().length;
 				synchronized (chunks) {
 					chunks.put(chunk.getHash(), chunk);
 				}
@@ -234,18 +343,28 @@ public class Processor {
 
 	public void removeFile(String fileName) {
 
-		// TODO build message to be sent and put in outgoingQueue
+		// build message to be sent and put in outgoingQueue
 		// delete from disk
+		byte[] fileId = ChunkManager.fileToSHA256("./" + fileName);
+		usedSpace -= ChunkManager.deleteChunks("./", Message.bytesToHex(fileId));
+		
+		Message message = new Message(fileId);
+		mcSender.send(message);
 
+		
+		
 		byte[] sha = null;
 
-		for (Entry<byte[], String> pair : myFiles.entrySet()) {
-			if (pair.getValue().equals(fileName)) {
-				sha = pair.getKey();
-				myFiles.remove(sha);
-				break;
+		synchronized (myFiles) {
+			for (Entry<byte[], String> pair : myFiles.entrySet()) {
+				if (pair.getValue().equals(fileName)) {
+					sha = pair.getKey();
+					myFiles.remove(sha);
+					break;
+				}
 			}
 		}
+		
 
 		if (sha == null)
 			throw new NullPointerException("file not found");
@@ -253,12 +372,47 @@ public class Processor {
 	}
 
 	public void addFile(String fileName, int repDeg) {
-		// TODO break in chunks, add fileID to myfiles, add chunks to hash
-		// sendPutChunk(chk);
+		//  break in chunks, add fileID to myfiles, add chunks to hash
+		byte[] sha = null;
+		long nrChunks = 0;
+		
+		try {
+			nrChunks = ChunkManager.createChunks("./" + fileName, ".", sha);
+		} catch (IOException e) {
+			gui.log("Couldn't create chunks for " + fileName);
+			
+			return;
+		}
+		
+		nrChunksByFile.put(sha, Long.valueOf(nrChunks));
+		
+		synchronized (myFiles) {
+			myFiles.put(sha, fileName);
+		}
+		
+		Chunk chunk;
+		int replicationDegree = gui.getReplicationDegree();
+		String ip = "";
+		
+		for(long i = 0; i < nrChunks; i++) {
+			chunk = new Chunk(sha, (int) i, replicationDegree, ip, true); // TODO ip?
+			
+			sendPutChunk(chunk);
+		}
 	}
 
 	public void setSpaceLimit(int mbLimit) {
-		// TODO if necessary add REMOVED msgs to outgoingqueue
+		// if necessary add REMOVED msgs to outgoingqueue
+		if(usedSpace <= mbLimit)
+			return;
+		
+		String[] results = new String[2];
+		usedSpace -= ChunkManager.deleteFirstChunk("./Chunks", results);
+		
+		Message message = new Message("REMOVED", version, results[0], Integer.parseInt(results[1]));
+		outgoingQueue.add(message);
+		
+		setSpaceLimit(mbLimit);
 	}
 
 	public void restoreFile(String fileName, String newLocation) {
