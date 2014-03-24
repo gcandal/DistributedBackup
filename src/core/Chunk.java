@@ -6,6 +6,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashSet;
 
+import utils.ChunkManager;
+
 public class Chunk {
 
 	private byte[] fileId;
@@ -112,7 +114,7 @@ public class Chunk {
 	}
 	
 	public void save(byte[] data) throws IOException {
-		File to = new File("./Chunks/" + Message.bytesToHex(fileId) + chunkNo);
+		File to = new File(Message.bytesToHex(fileId) + chunkNo);
 		to.createNewFile();
 		FileOutputStream toStream = new FileOutputStream(to);
 		toStream.write(data);
@@ -120,7 +122,7 @@ public class Chunk {
 	}
 
 	public byte[] load() throws IOException {
-		File from = new File(Message.bytesToHex(fileId) + chunkNo);
+		File from = new File(Message.bytesToHex(fileId) + ChunkManager.numToAscii(chunkNo));
 		FileInputStream fromStream = new FileInputStream(from);
 		
 		byte data[] = new byte[(int) from.length()];

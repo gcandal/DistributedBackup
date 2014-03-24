@@ -5,13 +5,12 @@ import gui.StartWindow;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import utils.ChunkManager;
 import net.MulticastReceiver;
 import net.MulticastSender;
+import utils.ChunkManager;
 
 public class Processor {
 
@@ -23,15 +22,15 @@ public class Processor {
 	private MulticastSender mcSender;
 	private MulticastSender mdbSender;
 	private MulticastSender mdrSender;
-	private HashMap<byte[], Chunk> chunks; // fileId+ChuckNo
-	private HashMap<byte[], String> myFiles; // fileId -> Talvez tenhamos que
+	private HashMap<byte[], Chunk> chunks = new HashMap<byte[], Chunk>();; // fileId+ChuckNo
+	private HashMap<byte[], String> myFiles = new HashMap<byte[], String>();; // fileId -> Talvez tenhamos que
 												// verificar se a data de
 												// alteracao mudou!
 	private HashMap<byte[], Long> nrChunksByFile = new HashMap<byte[], Long>();
 	private ConcurrentLinkedQueue<Message> messageQueue;
 	private ConcurrentLinkedQueue<Chunk> waitingChunks;
 	private ConcurrentLinkedQueue<Message> outgoingQueue;
-	private HashMap<byte[], String> filesToBeRestored;// -> string is new name
+	private HashMap<byte[], String> filesToBeRestored = new HashMap<byte[], String>();;// -> string is new name
 	
 	private long usedSpace = 0;
 
@@ -67,8 +66,10 @@ public class Processor {
 		mdrSender.start();
 		while (true) {
 			Message msg = messageQueue.poll();
+			
 			if (msg != null) { // empty queue
-
+				gui.log("Received " + msg.toString());
+				
 				switch (msg.getMessageType()) {
 				case "PUTCHUNK": {
 					processPutChunk(msg);
@@ -94,6 +95,7 @@ public class Processor {
 
 			Message out = outgoingQueue.poll();
 			if (out != null) { // empty queue
+				gui.log("Sent " + out.toString());
 
 				switch (out.getMessageType()) {
 				case "PUTCHUNK": {
@@ -103,10 +105,10 @@ public class Processor {
 					mcSender.send(out);
 				}
 				case "DELETE": {
-					mcSender.send(msg);
+					mcSender.send(out);
 				}
 				case "REMOVED": {
-					mcSender.send(msg);
+					mcSender.send(out);
 				}
 				}
 
@@ -144,7 +146,7 @@ public class Processor {
 			try {
 				newMsg.setBody(chk.load());
 			} catch (IOException e) {
-				gui.log("Couldn't load chunk's " + chk.getFileId() + chk.getChunkNo() + " body, re-adding to queue");
+				gui.log("Couldn't load chunk's " + Message.bytesToHex(chk.getFileId()) + chk.getChunkNo() + " body, re-adding to queue");
 				messageQueue.add(msg);
 				
 				return;
@@ -154,6 +156,7 @@ public class Processor {
 		} else
 			messageQueue.add(msg);
 
+		gui.setUsedSpace(usedSpace);
 	}
 
 	private void processDelete(Message msg) {
@@ -180,8 +183,10 @@ public class Processor {
 			}
 		}
 		
+		gui.setUsedSpace(usedSpace);
 	}
 	
+	/*
 	private boolean equalByteArrays(byte[] first, byte[] second) {
 		if(first.length != second.length)
 			return false;
@@ -191,7 +196,7 @@ public class Processor {
 				return false;
 		
 		return true;
-	}
+	}*/
 
 	private void processChunk(Message msg) { // if chunk is received, kills
 												// waiting getchunk message
@@ -211,9 +216,9 @@ public class Processor {
 			byte[] sha = chk.getHash();
 			String filename = Message.bytesToHex(sha);
 			
-			if(ChunkManager.countChunks("./Chunks", filename) == nrChunksByFile.get(sha)) {
+			if(ChunkManager.countChunks("./", filename) == nrChunksByFile.get(sha)) {
 				try {
-					ChunkManager.mergeChunks("./Chunks", filename, "./Restored/");
+					ChunkManager.mergeChunks("./", filename, filesToBeRestored.get(filename));
 				} catch (IOException e) {
 					gui.log("Couldn't restore " + filename);
 				}
@@ -229,6 +234,7 @@ public class Processor {
 			}
 		}
 
+		gui.setUsedSpace(usedSpace);
 	}
 
 	private void processGetChunk(Message msg) { // is kept in line till random
@@ -250,7 +256,7 @@ public class Processor {
 			try {
 				newMsg.setBody(chk.load());
 			} catch (IOException e) {
-				gui.log("Couldn't load chunk's " + chk.getFileId() + chk.getChunkNo() + " body, re-adding to queue");
+				gui.log("processGetChunk couldn't load chunk's " + chk.getFileId() + chk.getChunkNo() + " body, re-adding to queue");
 				messageQueue.add(msg);
 				
 				return;
@@ -269,7 +275,7 @@ public class Processor {
 		try {
 			msg.setBody(chk.load());
 		} catch (IOException e) {
-			gui.log("Couldn't load chunk's " + chk.getFileId() + chk.getChunkNo() + " body, skipping this save");
+			gui.log("sendPutChunk couldn't load chunk's " + chk.getFileId() + chk.getChunkNo() + " body, skipping this save");
 			
 			return;
 		}
@@ -305,7 +311,7 @@ public class Processor {
 					return;
 			}
 			
-			if (usedSpace + msg.getBody().length <= gui.getReplicationDegree()) {
+			if (usedSpace + msg.getBody().length <= gui.getMaxUsedSpace()) {
 				Chunk chunk = new Chunk(msg.getFileId(), msg.getChunkNo(),
 						msg.getReplicationDeg(), msg.getSenderIp());
 			
@@ -353,10 +359,22 @@ public class Processor {
 			}
 		}
 		
+		/* TODO não devia ser: ?
+		synchronized (myFiles) {
+			Iterator<String> it = myFiles.values().iterator();
+			while (it.hasNext()) {
+				String name = it.next();
+				
+	 			if(name.equals(fileName))
+	 				it.remove();
+			}
+		}
+		*/
 
 		if (sha == null)
 			throw new NullPointerException("file not found");
-
+		
+		notifyGuiFileChange();
 	}
 
 	public void addFile(String fileName, int repDeg) {
@@ -365,13 +383,14 @@ public class Processor {
 		long nrChunks = 0;
 		
 		try {
-			nrChunks = ChunkManager.createChunks("./" + fileName, ".", sha);
+			nrChunks = ChunkManager.createChunks(fileName, "./", sha);
 		} catch (IOException e) {
 			gui.log("Couldn't create chunks for " + fileName);
 			
 			return;
 		}
 		
+		gui.log("Created " + nrChunks + " for " + fileName);
 		nrChunksByFile.put(sha, Long.valueOf(nrChunks));
 		
 		synchronized (myFiles) {
@@ -387,11 +406,13 @@ public class Processor {
 			
 			sendPutChunk(chunk);
 		}
+		
+		notifyGuiFileChange();
 	}
 
 	public void setSpaceLimit(int mbLimit) {
 		// if necessary add REMOVED msgs to outgoingqueue
-		if(usedSpace <= mbLimit)
+		if(usedSpace <= mbLimit*1000000)
 			return;
 		
 		String[] results = new String[2];
@@ -404,16 +425,15 @@ public class Processor {
 	}
 
 	public void restoreFile(String fileName, String newLocation) {
+		gui.log("Trying to restore " + fileName + " to " + newLocation);
 		// TODO find chunks in hash, add CHUNK messages to outgoingqueue
 		// TODO add new name to filestoberestored hashmap
 	}
-
-	public String[] getMyFiles() {
-		String[] list;
+	
+	private void notifyGuiFileChange() {
 		synchronized (myFiles) {
-			list = (String[]) myFiles.values().toArray();
+			gui.replaceFileList(myFiles.values().toArray());
 		}
-		return list;
 	}
 
 }

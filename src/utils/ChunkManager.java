@@ -9,6 +9,8 @@ import java.nio.channels.FileChannel;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import core.Message;
+
 public class ChunkManager {
 	private static int CHUNK_SIZE = 64000;
 	private static MessageDigest md;
@@ -19,21 +21,23 @@ public class ChunkManager {
 		File from = new File(originalFilePath);
 		FileInputStream fromStream = new FileInputStream(from);
 		FileChannel in = fromStream.getChannel(); 
+		
 
 		int chunkNo = 0 ;
 		long lastChunkNo = from.length() / CHUNK_SIZE;
-
+		byte[] newSha = fileToSHA256(from.getName());
+		
 		while(chunkNo < lastChunkNo) {
-			writeChunk(chunkNo, in, destinyChunkPath + from.getName(), CHUNK_SIZE);
+			writeChunk(chunkNo, in, destinyChunkPath + Message.bytesToHex(newSha), CHUNK_SIZE);
 			chunkNo++;
 		}
 
-		writeChunk(chunkNo, in, destinyChunkPath + from.getName(), from.length() % CHUNK_SIZE);
+		writeChunk(chunkNo, in, destinyChunkPath + Message.bytesToHex(newSha), from.length() % CHUNK_SIZE);
 
 		fromStream.close();
 		in.close();
 		
-		byte[] newSha = fileToSHA256(from.getName());
+		
 		for(int i = 0; i < newSha.length; i++)
 			sha[i] = newSha[i];
 		
@@ -89,6 +93,7 @@ public class ChunkManager {
 
 		File to = new File(filename + numToAscii(chunkNo));
 		to.createNewFile();
+		
 		FileOutputStream toStream = new FileOutputStream(to);
 		FileChannel out = toStream.getChannel();
 

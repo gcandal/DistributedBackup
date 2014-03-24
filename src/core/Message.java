@@ -15,7 +15,7 @@ public class Message {
 	private String senderIp;
 	private long timestamp;
 	private long randomDelay;
-	
+
 	public Message(byte[] input, int size, String ip) throws Exception {
 		timestamp = System.currentTimeMillis();
 		Random r = new Random();
@@ -31,54 +31,54 @@ public class Message {
 		this.fileId=fileId;
 		this.chunkNo=chunkNo;
 	}
-	
+
 	public Message(byte[] newFileId) {
 		messageType = "DELETE";
-		
+
 		fileId = newFileId;
 	}
-	
+
 	public Message(String msg, float version, String fileId, int chunkNo) {
 		messageType=msg;
 		this.version=version;
 		fileIdString=fileId;
 		this.chunkNo=chunkNo;
 	}
-	
+
 	private void process(byte[] input, int size) throws Exception // the size is smaller than the length of the byte array
 	{
-		
+
 		if(input.length < size)
 			throw new Exception();
-		
+
 		char[] header = new char[100];
 		int i;
 		for(i = 0; i < input.length; i++)
 		{
 			if(input[i]=='\r' && input[i+1]=='\n' && input[i+2]=='\r' && input[i+3]=='\n')
 				break;
-			
+
 			header[i] = (char) input[i];
 		}
-		
+
 		String headerstr = String.valueOf(header, 0, i);
-		
+
 		System.out.println(headerstr);
-		
+
 		String[] inputs = headerstr.split(" ");
-		
+
 		//TODO check if valid
 		messageType = inputs[0];
 		version = Float.parseFloat(inputs[1]);
 		fileId = hexStringToByteArray(inputs[2]);
 		if(!messageType.equals("DELETE"))
 			chunkNo = Integer.parseInt(inputs[3]);
-		
+
 		if(messageType=="PUTCHUNK")
 		{
 			replicationDeg=Integer.parseInt(inputs[4]);
 		}
-		
+
 		if(messageType=="PUTCHUNK" || messageType=="CHUNK")
 		{
 			int bodysize = size - i - 4;
@@ -89,21 +89,21 @@ public class Message {
 			}
 		}
 	}
-	
+
 	public byte[] buildBuffer()
 	{		
 		StringBuilder sb = new StringBuilder();
-		
+
 		sb.append(messageType);
 		sb.append(" ");
-		
+
 		if(messageType.equals("DELETE")) {
 			sb.append(bytesToHex(fileId));
 			sb.append("\r\n\r\n");
-			
+
 			return sb.toString().getBytes();
 		}
-		
+
 		sb.append(Processor.version);
 		sb.append(" ");
 		if(fileIdString.equals(""))
@@ -111,11 +111,14 @@ public class Message {
 		else
 			sb.append(fileIdString);
 		sb.append(" ");
+		if(!messageType.equals("DELETE")) {
+			sb.append(chunkNo);
+			sb.append(" ");
+		}
 		if(replicationDeg>=0)
 			sb.append(replicationDeg);
 		sb.append("\r\n\r\n");
 		String headerstr = sb.toString();
-		//TODO log to gui
 		byte[] header = headerstr.getBytes();
 		if(body!=null)
 		{
@@ -127,7 +130,35 @@ public class Message {
 		}
 		return header;
 	}
-	
+
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+
+		sb.append(messageType);
+		sb.append(" ");
+
+		if(messageType.equals("DELETE")) {
+			sb.append(bytesToHex(fileId));
+			sb.append("\r\n\r\n");
+
+			return sb.toString();
+		}
+
+		sb.append(Processor.version);
+		sb.append(" ");
+		if(fileIdString.equals(""))
+			sb.append(bytesToHex(fileId));
+		else
+			sb.append(fileIdString);
+		sb.append(" ");
+		if(replicationDeg>=0)
+			sb.append(replicationDeg);
+		if(body!=null)
+			sb.append("Body length: " + body.length);
+		
+		return sb.toString();
+	}
+
 	public String getMessageType() {
 		return messageType;
 	}
@@ -183,26 +214,26 @@ public class Message {
 	public void setSenderIp(String senderIp) {
 		this.senderIp = senderIp;
 	}
-	
+
 	final private static char[] hexArray = "0123456789ABCDEF".toCharArray();
 	public static String bytesToHex(byte[] bytes) {
-	    char[] hexChars = new char[bytes.length * 2];
-	    for ( int j = 0; j < bytes.length; j++ ) {
-	        int v = bytes[j] & 0xFF;
-	        hexChars[j * 2] = hexArray[v >>> 4];
-	        hexChars[j * 2 + 1] = hexArray[v & 0x0F];
-	    }
-	    return new String(hexChars);
+		char[] hexChars = new char[bytes.length * 2];
+		for ( int j = 0; j < bytes.length; j++ ) {
+			int v = bytes[j] & 0xFF;
+			hexChars[j * 2] = hexArray[v >>> 4];
+			hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+		}
+		return new String(hexChars);
 	}
-	
+
 	public static byte[] hexStringToByteArray(String s) {
-	    int len = s.length();
-	    byte[] data = new byte[len / 2];
-	    for (int i = 0; i < len; i += 2) {
-	        data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-	                             + Character.digit(s.charAt(i+1), 16));
-	    }
-	    return data;
+		int len = s.length();
+		byte[] data = new byte[len / 2];
+		for (int i = 0; i < len; i += 2) {
+			data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+					+ Character.digit(s.charAt(i+1), 16));
+		}
+		return data;
 	}
 
 	public boolean ready() {

@@ -36,13 +36,14 @@ import javax.swing.JScrollPane;
 public class StartWindow {
 
 	private final int DEFAULT_MAX_SIZE = 50;
-	private static final String FROM_PATH = "./", TO_PATH = "./Restored/";
 	
 	private Processor core;
 	private JFrame frmDistributedBackupSystem;
 	private JTextArea logs;
 	private JComboBox<String> files;
-	JSpinner replicationDegree;
+	private JSpinner replicationDegree;
+	private JSlider maxUsedSpace;
+	private JLabel lblCurrentsize;
 	private final JFileChooser fc = new JFileChooser();
 	private File selectedFile;
 
@@ -52,8 +53,8 @@ public class StartWindow {
 		final String FILENAME = "DatabaseManagementSystems.pdf";
 		
 		try {
-			System.out.println(ChunkManager.createChunks(FROM_PATH + FILENAME, TO_PATH, sha));
-			ChunkManager.mergeChunks(FROM_PATH, FILENAME, TO_PATH);
+			System.out.println(ChunkManager.createChunks("./" + FILENAME, "./Restored/", sha));
+			ChunkManager.mergeChunks("./", FILENAME, "./Restored/");
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
@@ -102,6 +103,7 @@ public class StartWindow {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize(String[] args) {
+		fc.setAcceptAllFileFilterUsed(false);
 		frmDistributedBackupSystem = new JFrame();
 		frmDistributedBackupSystem.setTitle("Distributed Backup System");
 		frmDistributedBackupSystem.setBounds(100, 100, 588, 462);
@@ -164,21 +166,21 @@ public class StartWindow {
 		final JLabel lblMaxsize = new JLabel("MaxSize ("+DEFAULT_MAX_SIZE+" MB)");
 		frmDistributedBackupSystem.getContentPane().add(lblMaxsize, "4, 10");
 
-		final JSlider slider = new JSlider();
-		slider.setValue(DEFAULT_MAX_SIZE);
-		slider.addChangeListener(new ChangeListener() {
+		maxUsedSpace = new JSlider();
+		maxUsedSpace.setValue(DEFAULT_MAX_SIZE);
+		maxUsedSpace.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent arg0) {
-				lblMaxsize.setText("MaxSize (" + slider.getValue() + " MB)");
+				lblMaxsize.setText("MaxSize (" + maxUsedSpace.getValue() + " MB)");
 				
-				core.setSpaceLimit(slider.getValue());
+				core.setSpaceLimit(maxUsedSpace.getValue());
 			}
 		});
-		frmDistributedBackupSystem.getContentPane().add(slider, "6, 10, 5, 1");
+		frmDistributedBackupSystem.getContentPane().add(maxUsedSpace, "6, 10, 5, 1");
 
-		JLabel lblCurrentsize = new JLabel("Current Size 0 MB");
+		lblCurrentsize = new JLabel("Current Size: 0 MB");
 		frmDistributedBackupSystem.getContentPane().add(lblCurrentsize, "4, 12");
 
-		final JLabel filePathLabel = new JLabel("New File Path:");
+		final JLabel filePathLabel = new JLabel("File to be backed up:");
 		frmDistributedBackupSystem.getContentPane().add(filePathLabel, "4, 16");
 
 		JButton browseFileButton = new JButton("Browse File...");
@@ -191,7 +193,7 @@ public class StartWindow {
 		btnBackup.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent arg0) {
-				core.addFile(selectedFile.getName(), (int) replicationDegree.getValue());
+				core.addFile(selectedFile.getAbsolutePath(), (int) replicationDegree.getValue());
 			}
 		});
 		frmDistributedBackupSystem.getContentPane().add(btnBackup, "10, 16");
@@ -200,12 +202,17 @@ public class StartWindow {
 		frmDistributedBackupSystem.getContentPane().add(files, "4, 20, 7, 1, fill, default");
 
 		JButton btnRestore = new JButton("Restore...");
-		btnRestore.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent arg0) {
-				core.restoreFile((String) files.getSelectedItem(), TO_PATH);
+		btnRestore.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+				int returnVal = fc.showOpenDialog(frmDistributedBackupSystem.getContentPane());
+
+				if (returnVal == JFileChooser.APPROVE_OPTION && files.getSelectedItem() != null) {
+					core.restoreFile((String) files.getSelectedItem(), fc.getCurrentDirectory().getAbsolutePath());
+				}
 			}
 		});
+		
 		frmDistributedBackupSystem.getContentPane().add(btnRestore, "8, 22");
 
 		JButton btnRemove = new JButton("Remove");
@@ -225,13 +232,14 @@ public class StartWindow {
 
 		browseFileButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 				int returnVal = fc.showOpenDialog(frmDistributedBackupSystem.getContentPane());
 
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					selectedFile = fc.getSelectedFile();
 
 					if(selectedFile != null) {
-						filePathLabel.setText("New file path: " + selectedFile.getName());
+						filePathLabel.setText("File to be backed up: " + selectedFile.getName());
 					}
 				}
 			}
@@ -244,14 +252,22 @@ public class StartWindow {
 		logs.append(text + "\n");
 	}
 	
-	public void replaceFileList(String[] fileNames) {
+	public void replaceFileList(Object[] objects) {
 		files.removeAllItems();
 		
-		for(String filename: fileNames)
-			files.addItem(filename);
+		for(Object filename: objects)
+			files.addItem(filename.toString());
+	}
+	
+	public void setUsedSpace(long usedSpace) {
+		lblCurrentsize.setText("Current size: " + usedSpace/1000000 + "MB");
 	}
 	
 	public int getReplicationDegree() {
 		return (int) replicationDegree.getValue();
+	}
+	
+	public int getMaxUsedSpace() {
+		return (int) maxUsedSpace.getValue();
 	}
 }
