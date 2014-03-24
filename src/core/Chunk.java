@@ -88,8 +88,7 @@ public class Chunk {
 	
 	public static byte[] getHash(byte[] fileId, int chunkNo) //TODO missing leading 0
 	{
-		String num = ""; // Sugestão: String num = ChunkManager.numToAscii(chunkNo);
-		num += chunkNo;
+		String num = ChunkManager.numToAscii(chunkNo);
 		byte[] cnum = num.getBytes();
 		byte[] hash = new byte[cnum.length + fileId.length];
 		System.arraycopy(fileId, 0, hash, 0, fileId.length);

@@ -63,8 +63,6 @@ public class Message {
 
 		String headerstr = String.valueOf(header, 0, i);
 
-		System.out.println(headerstr);
-
 		String[] inputs = headerstr.split(" ");
 
 		//TODO check if valid
@@ -74,12 +72,12 @@ public class Message {
 		if(!messageType.equals("DELETE"))
 			chunkNo = Integer.parseInt(inputs[3]);
 
-		if(messageType=="PUTCHUNK")
+		if(messageType.equals("PUTCHUNK"))
 		{
 			replicationDeg=Integer.parseInt(inputs[4]);
 		}
 
-		if(messageType=="PUTCHUNK" || messageType=="CHUNK")
+		if(messageType.equals("PUTCHUNK") || messageType.equals("CHUNK"))
 		{
 			int bodysize = size - i - 4;
 			body = new byte[bodysize];
@@ -151,10 +149,14 @@ public class Message {
 		else
 			sb.append(fileIdString);
 		sb.append(" ");
+		if(!messageType.equals("DELETE")) {
+			sb.append(chunkNo);
+			sb.append(" ");
+		}
 		if(replicationDeg>=0)
 			sb.append(replicationDeg);
 		if(body!=null)
-			sb.append("Body length: " + body.length);
+			sb.append(" Body length: " + body.length);
 		
 		return sb.toString();
 	}
@@ -177,6 +179,10 @@ public class Message {
 
 	public byte[] getFileId() {
 		return fileId;
+	}
+	
+	public String getTextFileId() {
+		return bytesToHex(fileId);
 	}
 
 	public void setFileId(byte[] fileId) {
