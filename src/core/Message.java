@@ -24,25 +24,17 @@ public class Message {
 		process(input,size);
 	}
 
-	public Message(String msg, float version, byte[] fileId, int chunkNo) //? chunkNo int?
+	public Message(String msg, float version, byte[] fileId)
 	{
 		messageType=msg;
 		this.version=version;
 		this.fileId=fileId;
-		this.chunkNo=chunkNo;
 	}
 
-	public Message(byte[] newFileId) {
-		messageType = "DELETE";
-
-		fileId = newFileId;
-	}
-
-	public Message(String msg, float version, String fileId, int chunkNo) {
+	public Message(String msg, float version, String fileId) {
 		messageType=msg;
 		this.version=version;
 		fileIdString=fileId;
-		this.chunkNo=chunkNo;
 	}
 
 	private void process(byte[] input, int size) throws Exception // the size is smaller than the length of the byte array
@@ -204,7 +196,7 @@ public class Message {
 	public void setReplicationDeg(int replicationDeg) {
 		this.replicationDeg = replicationDeg;
 	}
-
+	
 	public byte[] getBody() {
 		return body;
 	}

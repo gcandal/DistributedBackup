@@ -91,7 +91,7 @@ public class Processor {
 				}
 
 			}
-
+			
 			Message out = outgoingQueue.poll();
 			if (out != null) { // empty queue
 				gui.log("Sent " + out.toString());
@@ -144,42 +144,47 @@ public class Processor {
 
 		if (msg.ready()) {
 			chk.removeHostWithChunk(msg.getSenderIp());
-			Message newMsg = new Message("PUTCHUNK", version, msg.getFileId(),
-					msg.getChunkNo());
-			newMsg.setReplicationDeg(chk.getReplicationDeg());
+			if(chk.getCounter()<chk.getReplicationDeg())
+			{
 
-			try {
-				newMsg.setBody(chk.load());
-			} catch (IOException e) {
-				gui.log("Couldn't load chunk's " + Message.bytesToHex(chk.getFileId()) + chk.getChunkNo() + " body, re-adding to queue");
-				messageQueue.add(msg);
+				Message newMsg = new Message("PUTCHUNK", version, msg.getFileId());
+				newMsg.setReplicationDeg(chk.getReplicationDeg());
+				newMsg.setChunkNo(msg.getChunkNo());
 
-				return;
+				try {
+					newMsg.setBody(chk.load());
+				} catch (IOException e) {
+					gui.log("Couldn't load chunk's " + Message.bytesToHex(chk.getFileId()) + chk.getChunkNo() + " body");
+					//messageQueue.add(msg);
+
+					return;
+				}
+
+				outgoingQueue.add(newMsg);
 			}
-
-			outgoingQueue.add(newMsg);
 		} else
 			messageQueue.add(msg);
-
-		gui.setUsedSpace(usedSpace);
 	}
 
 	private void processDelete(Message msg) {
 
-		synchronized (chunks) {
-			Iterator<String> it = chunks.keySet().iterator();
-			while (it.hasNext()) {
-				String hash = it.next();
 
-				if (!hash.equals(msg.getTextFileId())) {
-					it.remove();
-					ChunkManager.deleteChunks("./", hash);
-					// Delete files ---- to get byte[] for acess hashmap use
-					// Chunk.getHash(msg.getFileId(),
-					// msg.getChunkNo())
-				}
-			}
-		}
+ 		Iterator<String> it = chunks.keySet().iterator();
+  		while (it.hasNext()) {
+  			String hash = it.next();
+ 			boolean belongs = true;
+  			for (int i = 0; i < 256; i++) {
+  				if (hash.charAt(i) != msg.getTextFileId().charAt(i)) {
+  					belongs = false;
+  					break;
+  				}
+  			}
+  
+  			if (belongs) {
+  				it.remove();
+				usedSpace -= ChunkManager.deleteChunks("./", hash);
+  			}
+  		}
 
 		gui.setUsedSpace(usedSpace);
 	}
@@ -202,7 +207,7 @@ public class Processor {
 
 		synchronized (chunks) {
 			chk = chunks
-					.get(Chunk.getHash(msg.getFileId(), msg.getChunkNo()));
+					.get(Chunk.getHash(msg.getFileId(), msg.getChunkNo())); //TODO
 		}
 
 		if (chk == null)
@@ -248,15 +253,13 @@ public class Processor {
 			if (chk == null)
 				return;
 
-			Message newMsg = new Message("CHUNK", version, msg.getFileId(),
-					msg.getChunkNo());
+			Message newMsg = new Message("CHUNK", version, msg.getFileId());
+			newMsg.setChunkNo(msg.getChunkNo());
 
 			try {
 				newMsg.setBody(chk.load());
 			} catch (IOException e) {
-				gui.log("processGetChunk couldn't load chunk's " + chk.getFileId() + chk.getChunkNo() + " body, re-adding to queue");
-				messageQueue.add(msg);
-
+				gui.log("processGetChunk couldn't load chunk's " + chk.getFileId() + chk.getChunkNo() + " body");
 				return;
 			}
 
@@ -266,8 +269,8 @@ public class Processor {
 	}
 
 	private void sendPutChunk(Chunk chk) {
-		Message msg = new Message("PUTCHUNK", version, chk.getFileId(),
-				chk.getChunkNo());
+		Message msg = new Message("PUTCHUNK", version, chk.getFileId());
+		msg.setChunkNo(chk.getChunkNo());
 		msg.setReplicationDeg(chk.getReplicationDeg());
 
 		try {
@@ -308,10 +311,9 @@ public class Processor {
 		
 
 		if (msg.ready()) {
-			Message newMsg = new Message("STORED", version, msg.getFileId(),
-					msg.getChunkNo());
+			Message newMsg = new Message("STORED", version, msg.getFileId());
+			newMsg.setChunkNo(msg.getChunkNo());
 			
-			//outgoingQueue.add(newMsg);
 
 			if (usedSpace + msg.getBody().length <= gui.getMaxUsedSpace()) {
 				Chunk chunk = new Chunk(msg.getFileId(), msg.getChunkNo(),
@@ -320,8 +322,7 @@ public class Processor {
 				try {
 					chunk.save(msg.getBody());
 				} catch (IOException e) {
-					gui.log("Couldn't write " + chunk.getFileId() + chunk.getChunkNo() + " to disk, re-adding to queue");
-					messageQueue.add(msg);
+					gui.log("Couldn't write " + chunk.getFileId() + chunk.getChunkNo() + " to disk");
 
 					return;
 				}
@@ -330,6 +331,7 @@ public class Processor {
 				synchronized (chunks) {
 					chunks.put(Message.bytesToHex(chunk.getHash()), chunk);
 				}
+				outgoingQueue.add(newMsg);
 			}
 
 			gui.log("processPutChunk Received " + msg.toString());
@@ -340,30 +342,32 @@ public class Processor {
 
 	public void removeFile(String fileName) {
 
+		//TODO
+		// remove chunks, 
+		
+		
 		// build message to be sent and put in outgoingQueue
 		// delete from disk
-		byte[] fileId = ChunkManager.fileToSHA256("./" + fileName);
-		usedSpace -= ChunkManager.deleteChunks("./", Message.bytesToHex(fileId));
-
-		Message message = new Message(fileId);
-		outgoingQueue.add(message);
+		String fileId = null;
 
 
-
-		byte[] sha = null;
-
-		synchronized (myFiles) {
-			Iterator<String> it = myFiles.values().iterator();
-			while (it.hasNext()) {
-				String name = it.next();
-
-	 			if(name.equals(fileName))
-	 				it.remove();
+		for (Entry<String, String> pair : myFiles.entrySet()) {
+			if (pair.getValue().equals(fileName)) {
+				fileId = pair.getKey();
+				break;
 			}
 		}
+	
+		if (fileId == null)
+		{
+			gui.log("File to be removed not found");
+			myFiles.remove(fileId);
+		}
 		
-		if (sha == null)
-			throw new NullPointerException("file not found");
+		usedSpace -= ChunkManager.deleteChunks("./",fileId);
+
+		Message message = new Message("DELETE", version, fileId);
+		outgoingQueue.add(message);
 
 		notifyGuiFileChange();
 	}
@@ -381,28 +385,23 @@ public class Processor {
 			return;
 		}
 
-		gui.log("Created " + nrChunks + " chunk for " + fileName);
+		gui.log("Created " + nrChunks + " chunks for " + fileName);
 		nrChunksByFile.put(Message.bytesToHex(sha), Long.valueOf(nrChunks));
 
 		synchronized (myFiles) {
 			myFiles.put(Message.bytesToHex(sha), fileName);
 		}
 
-		Chunk chunk;
-		int replicationDegree = gui.getReplicationDegree();
-		String ip = "";
-
-		for(long i = 0; i < nrChunks; i++) {
-			chunk = new Chunk(sha, (int) i, replicationDegree, ip, true); // TODO ip?
-
+		for(int i = 0; i < nrChunks; i++) {
+			Chunk chunk = new Chunk(sha, i, repDeg, "", true);
 			sendPutChunk(chunk);
 		}
 
 		notifyGuiFileChange();
 	}
 
-	public void setSpaceLimit(int mbLimit) {
-		// if necessary add REMOVED msgs to outgoingqueue
+	public void setSpaceLimit(int mbLimit) { //TODO find chunks with high rep degree
+		/*// if necessary add REMOVED msgs to outgoingqueue
 		if(usedSpace <= mbLimit*1000000)
 			return;
 
@@ -412,7 +411,7 @@ public class Processor {
 		Message message = new Message("REMOVED", version, results[0], Integer.parseInt(results[1]));
 		outgoingQueue.add(message);
 
-		setSpaceLimit(mbLimit);
+		setSpaceLimit(mbLimit);*/
 	}
 
 	public void restoreFile(String fileName, String newLocation) {
