@@ -10,8 +10,9 @@ import utils.ChunkManager;
 
 public class Chunk {
 
-	private byte[] fileId;
+	private String fileIdString;
 	private int chunkNo;
+	private String chunkId;
 	private int replicationDeg;
 	private String chunkIp;
 	private HashSet<String> hostsWithChunk;
@@ -22,23 +23,26 @@ public class Chunk {
 	private long lastSend;
 	private int sendTimes = 0;
 	
-	public Chunk(byte[] fileId, int i, int replicationDeg, String ip) {
+	public Chunk(String fileId, int i, int replicationDeg, String ip) {
 		initialize(fileId,i,replicationDeg,ip,false);
 	}
 	
-	public Chunk(byte[] fileId, int i, int replicationDeg, String ip, boolean mine)
+	public Chunk(String fileId, int i, int replicationDeg, String ip, boolean mine)
 	{
 		initialize(fileId,i,replicationDeg,ip,mine);
 	}
 	
-	private void initialize(byte[] fileId, int i, int replicationDeg, String ip, boolean mine)
+	private void initialize(String fileId, int i, int replicationDeg, String ip, boolean mine)
 	{
 		hostsWithChunk = new HashSet<String>();
-		this.fileId = fileId;
+		this.fileIdString = fileId;
 		this.chunkNo = i;
+		String num = ChunkManager.numToAscii(chunkNo);
+		chunkId = fileIdString + num;
 		this.replicationDeg = replicationDeg;
 		this.chunkIp = ip;
 		this.mine = mine;
+		this.lastSend = 0;
 	}
 	
 	public void notifySent()
@@ -48,14 +52,15 @@ public class Chunk {
 		timeInterval *= 2;
 	}
 	
-	public boolean shouldResend()
+	public boolean timeOver()
 	{
 		long dif = System.currentTimeMillis() - lastSend;
-		if(timeInterval < dif)
-			return false;
-		
-		return (mine && hostsWithChunk.size()<replicationDeg && sendTimes < 5);
-		
+		return dif >= timeInterval;
+	}
+	
+	public boolean shouldResend()
+	{
+		return (mine && hostsWithChunk.size()<replicationDeg && sendTimes < 5);	
 	}
 	
 	public void addHostWithChunk(String ip)
@@ -63,8 +68,8 @@ public class Chunk {
 		hostsWithChunk.add(ip);
 	}
 
-	public byte[] getFileId() {
-		return fileId;
+	public String getTextFileId() {
+		return fileIdString;
 	}
 
 	public int getChunkNo() {
@@ -77,23 +82,6 @@ public class Chunk {
 	
 	public int getCounter() {
 		return hostsWithChunk.size();
-	}
-	
-	
-	
-	public byte[] getHash()
-	{
-		return getHash(fileId, chunkNo);
-	}
-	
-	public static byte[] getHash(byte[] fileId, int chunkNo)
-	{
-		String num = ChunkManager.numToAscii(chunkNo);
-		byte[] cnum = num.getBytes();
-		byte[] hash = new byte[cnum.length + fileId.length];
-		System.arraycopy(fileId, 0, hash, 0, fileId.length);
-		System.arraycopy(cnum, 0, hash, fileId.length, cnum.length);
-		return hash;
 	}
 
 	public String getChunkIp() {
@@ -113,7 +101,7 @@ public class Chunk {
 	}
 	
 	public void save(byte[] data) throws IOException {
-		File to = new File(Message.bytesToHex(fileId) + chunkNo);
+		File to = new File(chunkId);
 		to.createNewFile();
 		FileOutputStream toStream = new FileOutputStream(to);
 		toStream.write(data);
@@ -121,7 +109,7 @@ public class Chunk {
 	}
 
 	public byte[] load() throws IOException {
-		File from = new File(Message.bytesToHex(fileId) + ChunkManager.numToAscii(chunkNo));
+		File from = new File(chunkId);
 		FileInputStream fromStream = new FileInputStream(from);
 		
 		byte data[] = new byte[(int) from.length()];
@@ -133,5 +121,31 @@ public class Chunk {
 
 	public void removeHostWithChunk(String senderIp) {
 		hostsWithChunk.remove(senderIp);		
+	}
+	
+	public String getChunkId()
+	{
+		return chunkId;
+	}
+	
+	public static String getChunkId(String fileId, int chunkNo)
+	{
+		return fileId + ChunkManager.numToAscii(chunkNo);
+	}
+	
+	@Override
+	public boolean equals(Object o)
+	{
+		if(o == null)
+			return false;
+		
+		if((o instanceof String))
+			if(((String)o).equals(chunkId))
+				return true;
+		
+		if(this == o)
+			return true;
+		
+		return false;
 	}
 }

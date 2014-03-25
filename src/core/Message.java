@@ -7,7 +7,6 @@ public class Message {
 
 	private String messageType;
 	private float version;
-	private byte[] fileId;
 	private String fileIdString = "";
 	private int chunkNo;
 	private int replicationDeg=-1;
@@ -22,13 +21,6 @@ public class Message {
 		randomDelay = r.nextLong()%400;
 		senderIp = ip;
 		process(input,size);
-	}
-
-	public Message(String msg, float version, byte[] fileId)
-	{
-		messageType=msg;
-		this.version=version;
-		this.fileId=fileId;
 	}
 
 	public Message(String msg, float version, String fileId) {
@@ -59,11 +51,14 @@ public class Message {
 
 		//TODO check if valid
 		messageType = inputs[0];
-		version = Float.parseFloat(inputs[1]);
-		fileId = hexStringToByteArray(inputs[2]);
 		if(!messageType.equals("DELETE"))
+		{
+			version = Float.parseFloat(inputs[1]);
+			fileIdString = inputs[2];
 			chunkNo = Integer.parseInt(inputs[3]);
-
+		} else
+			fileIdString = inputs[1];
+				
 		if(messageType.equals("PUTCHUNK"))
 		{
 			replicationDeg=Integer.parseInt(inputs[4]);
@@ -88,23 +83,20 @@ public class Message {
 		sb.append(" ");
 
 		if(messageType.equals("DELETE")) {
-			sb.append(bytesToHex(fileId));
+			sb.append(fileIdString);
 			sb.append("\r\n\r\n");
 
 			return sb.toString().getBytes();
 		}
 
+		//------- not delete
+		
 		sb.append(Processor.version);
 		sb.append(" ");
-		if(fileIdString.equals(""))
-			sb.append(bytesToHex(fileId));
-		else
-			sb.append(fileIdString);
+		sb.append(fileIdString);
 		sb.append(" ");
-		if(!messageType.equals("DELETE")) {
-			sb.append(chunkNo);
-			sb.append(" ");
-		}
+		sb.append(chunkNo);
+		sb.append(" ");
 		if(replicationDeg>=0)
 			sb.append(replicationDeg);
 		sb.append("\r\n\r\n");
@@ -128,7 +120,7 @@ public class Message {
 		sb.append(" ");
 
 		if(messageType.equals("DELETE")) {
-			sb.append(bytesToHex(fileId));
+			sb.append(fileIdString);
 			sb.append("\r\n\r\n");
 
 			return sb.toString();
@@ -136,10 +128,7 @@ public class Message {
 
 		sb.append(Processor.version);
 		sb.append(" ");
-		if(fileIdString.equals(""))
-			sb.append(bytesToHex(fileId));
-		else
-			sb.append(fileIdString);
+		sb.append(fileIdString);
 		sb.append(" ");
 		if(!messageType.equals("DELETE")) {
 			sb.append(chunkNo);
@@ -169,16 +158,13 @@ public class Message {
 		this.version = version;
 	}
 
-	public byte[] getFileId() {
-		return fileId;
-	}
 	
 	public String getTextFileId() {
-		return bytesToHex(fileId);
+		return fileIdString;
 	}
 
-	public void setFileId(byte[] fileId) {
-		this.fileId = fileId;
+	public void setTextFileId(String fileId) {
+		this.fileIdString = fileId;
 	}
 
 	public int getChunkNo() {
