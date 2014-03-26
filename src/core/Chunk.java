@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.HashSet;
 
 import utils.ChunkManager;
@@ -22,6 +23,19 @@ public class Chunk {
 	private long timeInterval = 500;
 	private long lastSend;
 	private int sendTimes = 0;
+	
+	public static class ChunkCompare implements Comparator<Chunk>
+	{
+
+		@Override
+		public int compare(Chunk o1, Chunk o2) {
+			int o1dif = o1.getCounter() - o1.getReplicationDeg();
+			int o2dif = o2.getCounter() - o2.getReplicationDeg();
+			
+			return -(o1dif-o2dif); // to get the highest in top of heap
+		}
+		
+	}
 	
 	public Chunk(String fileId, int i, int replicationDeg, String ip) {
 		initialize(fileId,i,replicationDeg,ip,false);
@@ -132,7 +146,7 @@ public class Chunk {
 	{
 		return fileId + ChunkManager.numToAscii(chunkNo);
 	}
-	
+	/*
 	@Override
 	public boolean equals(Object o)
 	{
@@ -147,5 +161,5 @@ public class Chunk {
 			return true;
 		
 		return false;
-	}
+	}*/
 }

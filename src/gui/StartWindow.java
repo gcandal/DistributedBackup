@@ -4,7 +4,6 @@ import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-import java.io.IOException;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -18,14 +17,12 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import utils.ChunkManager;
 
 import com.jgoodies.forms.factories.FormFactory;
 import com.jgoodies.forms.layout.ColumnSpec;
 import com.jgoodies.forms.layout.FormLayout;
 import com.jgoodies.forms.layout.RowSpec;
 
-import core.Message;
 import core.Processor;
 
 import java.awt.event.MouseAdapter;
@@ -46,7 +43,7 @@ public class StartWindow {
 	private JLabel lblCurrentsize;
 	private final JFileChooser fc = new JFileChooser();
 	private File selectedFile;
-
+/*
 	static void test() {
 		System.out.println(Message.bytesToHex(ChunkManager.fileToSHA256("forms-1.3.0.jar")));
 		byte[] sha = null;
@@ -65,7 +62,7 @@ public class StartWindow {
 		ChunkManager.deleteFirstChunk("./Chunks", results);
 		System.out.println(results[0]);
 		System.out.println(results[1]);
-	}
+	}*/
 	/**
 	 * Launch the application.
 	 */

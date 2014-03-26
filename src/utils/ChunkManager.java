@@ -44,7 +44,7 @@ public class ChunkManager {
 		return lastChunkNo + 1;
 	}
 
-	public static void mergeChunks(String filepath, final String filename, String newFilePath) throws IOException {
+	public static void mergeChunks(String filepath, final String filename, String newFilePath, String newname) throws IOException {
 		File[] chunks = new File(filepath).listFiles(new FilenameFilter() {
 			@Override
 			public boolean accept(File arg0, String name) {
@@ -52,7 +52,12 @@ public class ChunkManager {
 			}
 		});
 
-		File to = new File(newFilePath + filename);
+		String newfile = newFilePath;
+		if(!newfile.endsWith("/"))
+			newfile += "/";
+		newfile += newname;
+		
+		File to = new File(newfile);
 		to.delete();
 		to.createNewFile();
 		
@@ -163,7 +168,10 @@ public class ChunkManager {
         return folderSize;
     }
 	
-	public static long deleteFirstChunk(String path, String[] results) {
+	public static long deleteChunk(String path, String filename) {
+		
+		//TODO delete file
+		/*
 		File[] fileList = new File(path).listFiles();
 		File chunkToDelete = fileList[0];
 		long size = chunkToDelete.length();
@@ -174,7 +182,8 @@ public class ChunkManager {
 		
 		chunkToDelete.delete();
 		
-		return size;
+		return size;*/
+		return 0;
 	}
 	
 	public static long countChunks(String path, final String fileName) {
