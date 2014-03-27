@@ -354,14 +354,14 @@ public class Processor {
 
 	public void addFile(String fileName, int repDeg) {
 		// break in chunks, add fileID to myfiles, add chunks to hash
+		gui.log("Please wait the file is being broken into chunks");
 		byte[] sha = new byte[32];
 		long nrChunks = 0;
 
 		try {
-			nrChunks = ChunkManager.createChunks(fileName, "./", sha);
+			nrChunks = ChunkManager.createChunks(fileName, "./", sha); //TODO add to usedSpace
 		} catch (IOException e) {
 			gui.log("Couldn't create chunks for " + fileName);
-
 			return;
 		}
 

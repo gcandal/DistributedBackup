@@ -145,8 +145,7 @@ public class ChunkManager {
 				md = MessageDigest.getInstance("SHA-256");
 			} catch (NoSuchAlgorithmException e1) {
 				e1.printStackTrace();
-
-				return new byte[0];
+				return null;
 			}
 		}
 
