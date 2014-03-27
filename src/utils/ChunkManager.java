@@ -169,21 +169,12 @@ public class ChunkManager {
     }
 	
 	public static long deleteChunk(String path, String filename) {
-		
-		//TODO delete file
-		/*
-		File[] fileList = new File(path).listFiles();
-		File chunkToDelete = fileList[0];
+		File chunkToDelete = new File(path + filename);
 		long size = chunkToDelete.length();
-		
-		String fileName = chunkToDelete.getName();
-		results[0] = fileName.substring(0, fileName.length()-6);
-		results[1] = fileName.substring(fileName.length()-6);
 		
 		chunkToDelete.delete();
 		
-		return size;*/
-		return 0;
+		return size;
 	}
 	
 	public static long countChunks(String path, final String fileName) {
