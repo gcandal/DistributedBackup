@@ -254,7 +254,7 @@ public class StartWindow {
 	}
 	
 	public void setUsedSpace(long usedSpace) {
-		lblCurrentsize.setText("Current size: " + ((float)usedSpace)/1000000 + "MB");
+		lblCurrentsize.setText("Current size: " + String.format("%.4f", usedSpace/1000000.0)  + " MB");
 	}
 	
 	public int getReplicationDegree() {
