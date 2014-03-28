@@ -16,23 +16,23 @@ public class ChunkManager {
 	private static MessageDigest md;
 
 	public static long createChunks(String originalFilePath,
-			String destinyChunkPath, byte[] sha) throws IOException {
+			String destinyChunkPath, byte[] sha, Long[] totalSize) throws IOException {
 
 		File from = new File(originalFilePath);
 		FileInputStream fromStream = new FileInputStream(from);
 		FileChannel in = fromStream.getChannel(); 
 		
-
+		totalSize[0] = (long) 0;
 		int chunkNo = 0 ;
 		long lastChunkNo = from.length() / CHUNK_SIZE;
 		byte[] newSha = fileToSHA256(from.getName());
 		
 		while(chunkNo < lastChunkNo) {
-			writeChunk(chunkNo, in, destinyChunkPath + Message.bytesToHex(newSha), CHUNK_SIZE);
+			totalSize[0] +=	writeChunk(chunkNo, in, destinyChunkPath + Message.bytesToHex(newSha), CHUNK_SIZE);
 			chunkNo++;
 		}
 
-		writeChunk(chunkNo, in, destinyChunkPath + Message.bytesToHex(newSha), from.length() % CHUNK_SIZE);
+		totalSize[0] += writeChunk(chunkNo, in, destinyChunkPath + Message.bytesToHex(newSha), from.length() % CHUNK_SIZE);
 
 		fromStream.close();
 		in.close();
@@ -93,10 +93,11 @@ public class ChunkManager {
 		return freedSpace;
 	}
 
-	private static void writeChunk(int chunkNo, FileChannel in, String filename, long targetSize) throws IOException {
+	private static long writeChunk(int chunkNo, FileChannel in, String filename, long targetSize) throws IOException {
 		int position = 0;
 
 		File to = new File(filename + numToAscii(chunkNo));
+		System.out.println(to.getAbsolutePath());
 		to.createNewFile();
 		
 		FileOutputStream toStream = new FileOutputStream(to);
@@ -107,8 +108,10 @@ public class ChunkManager {
 
 		toStream.close();
 		out.close();
+		
+		return to.length();
 	}
-/*
+
 	public static void createMockFile(String filepath, int size) throws IOException {
 		File mock = new File(filepath);
 		mock.createNewFile();
@@ -120,7 +123,7 @@ public class ChunkManager {
 
 		buf.close();
 	}
-*/
+
 	public static int getChunkSize() {
 		return CHUNK_SIZE;
 	}

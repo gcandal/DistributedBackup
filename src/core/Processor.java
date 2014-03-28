@@ -33,7 +33,7 @@ public class Processor extends Thread{
 	private ConcurrentLinkedQueue<Message> outgoingQueue;
 	private StateKeeper state;
 
-	private long usedSpace = 0;
+	private int[] sizes;
 
 	public Processor(final String[] args,StartWindow newGui) {
 		messageQueue = new ConcurrentLinkedQueue<>();
@@ -54,6 +54,9 @@ public class Processor extends Thread{
 		filesToBeRestored = new ConcurrentHashMap<String, String>();
 		state = new StateKeeper("state.ser",30000);
 		gui=newGui;
+		sizes = new int[2];
+		sizes[0] = 0;
+		sizes[1] = 1;
 	}
 
 	public void newInputMessage(Message message) {
@@ -69,9 +72,10 @@ public class Processor extends Thread{
 			myFiles = (ConcurrentHashMap<String, String>) state.getObject("myFiles");
 			nrChunksByFile = (ConcurrentHashMap<String, Long>) state.getObject("nrChunksByFile");
 			filesToBeRestored = (ConcurrentHashMap<String, String>) state.getObject("filesToBeRestored");
-			usedSpace = (Long) state.getObject("usedSpace");
-			gui.setUsedSpace(usedSpace);
-			gui.setMaxUsedSpace((Integer) state.getObject("maxSpace"));
+			sizes[0] = ((int[]) state.getObject("sizes"))[0];
+			sizes[1] = ((int[]) state.getObject("sizes"))[1];
+			gui.setUsedSpace(sizes[0]);
+			gui.setMaxUsedSpace(sizes[1]);
 			notifyGuiFileChange();
 			gui.log("Loaded from last session.");
 		} catch (Exception e) {
@@ -80,8 +84,8 @@ public class Processor extends Thread{
 			state.addObject("myFiles", myFiles);
 			state.addObject("nrChunksByFile", nrChunksByFile);
 			state.addObject("filesToBeRestored", filesToBeRestored);
-			state.addObject("usedSpace",new Long(usedSpace));
-			state.addObject("maxSpace", new Integer(gui.getMaxUsedSpace()));
+			state.addObject("sizes",sizes);
+			sizes[1] = gui.getMaxUsedSpace();
 		}
 		process();
 	}
@@ -221,8 +225,8 @@ public class Processor extends Thread{
 			}
 		}
 
-		usedSpace -= ChunkManager.deleteChunks("./", msg.getTextFileId());
-		gui.setUsedSpace(usedSpace);
+		sizes[0] -= ChunkManager.deleteChunks("./", msg.getTextFileId());
+		gui.setUsedSpace(sizes[0]);
 	}
 
 	private void processChunk(Message msg) { 
@@ -331,7 +335,7 @@ public class Processor extends Thread{
 			Message newMsg = new Message("STORED", version, msg.getTextFileId());
 			newMsg.setChunkNo(msg.getChunkNo());
 
-			if (usedSpace + msg.getBody().length <= gui.getMaxUsedSpace()) {
+			if (sizes[0] + msg.getBody().length <= gui.getMaxUsedSpace()) {
 				Chunk chunk = new Chunk(msg.getTextFileId(), msg.getChunkNo(),
 						msg.getReplicationDeg(), msg.getSenderIp());
 
@@ -343,7 +347,7 @@ public class Processor extends Thread{
 					return;
 				}
 
-				usedSpace += msg.getBody().length;
+				sizes[0] += msg.getBody().length;
 				chunks.put(
 						Chunk.getChunkId(msg.getTextFileId(), msg.getChunkNo()),
 						chunk);
@@ -388,7 +392,10 @@ public class Processor extends Thread{
 		long nrChunks = 0;
 
 		try {
-			nrChunks = ChunkManager.createChunks(fileName, "./", sha); //TODO add to usedSpace
+			Long[] chksize = new Long[1];
+			nrChunks = ChunkManager.createChunks(fileName, "./", sha,chksize);
+			sizes[0] += chksize[0];
+			gui.setUsedSpace(sizes[0]);
 		} catch (IOException e) {
 			gui.log("Couldn't create chunks for " + fileName);
 			return;
@@ -412,7 +419,9 @@ public class Processor extends Thread{
 
 	public void setSpaceLimit(int mbLimit) {
 		
-		if(usedSpace <= mbLimit*1000000)
+		sizes[1] = mbLimit;
+		
+		if(sizes[0] <= mbLimit*1000000)
 			return;
 		
 		PriorityQueue<Chunk> orderedChunks = new PriorityQueue<Chunk>(chunks.size(), new Chunk.ChunkCompare());
@@ -423,15 +432,15 @@ public class Processor extends Thread{
 			orderedChunks.add(chunk);
 		}
 		
-		while(usedSpace <= mbLimit*1000000){
+		while(sizes[0] <= mbLimit*1000000){
 			Chunk chk = orderedChunks.poll();
 			gui.log("Removed chunk " + chk.getChunkId() + " repdeg " + chk.getReplicationDeg() + " currentrepdeg " + chk.getCounter());
-			usedSpace -= ChunkManager.deleteChunk("./",chk.getTextFileId());
+			sizes[0] -= ChunkManager.deleteChunk("./",chk.getTextFileId());
 			chunks.remove(chk.getChunkId());
 			Message message = new Message("REMOVED", version,chk.getTextFileId());
 			message.setChunkNo(chk.getChunkNo());
 			outgoingQueue.add(message);
-			gui.setUsedSpace(usedSpace);
+			gui.setUsedSpace(sizes[0]);
 		}		
 	}
 
