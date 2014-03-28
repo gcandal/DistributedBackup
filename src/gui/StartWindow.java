@@ -17,7 +17,6 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-
 import com.jgoodies.forms.factories.FormFactory;
 import com.jgoodies.forms.layout.ColumnSpec;
 import com.jgoodies.forms.layout.FormLayout;
@@ -43,6 +42,8 @@ public class StartWindow {
 	private JLabel lblCurrentsize;
 	private final JFileChooser fc = new JFileChooser();
 	private File selectedFile;
+
+	private JLabel lblMaxsize;
 /*
 	static void test() {
 		System.out.println(Message.bytesToHex(ChunkManager.fileToSHA256("forms-1.3.0.jar")));
@@ -67,15 +68,13 @@ public class StartWindow {
 	 * Launch the application.
 	 */
 	public static void main(final String[] args) {
-
-		final Processor p = new Processor(args);
 		
 		//test();
 		
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					StartWindow window = new StartWindow(p, args);
+					StartWindow window = new StartWindow(args);
 					window.frmDistributedBackupSystem.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -83,17 +82,15 @@ public class StartWindow {
 			}
 		});
 
-		p.process();
-
 	}
 
 	/**
 	 * Create the application.
 	 */
-	public StartWindow(Processor core, String[] args) {
-		this.core = core;
-		core.addGui(this);
+	public StartWindow(String[] args) {
+		core = new Processor(args,this);
 		initialize(args);
+		core.start();
 	}
 
 	/**
@@ -160,7 +157,7 @@ public class StartWindow {
 				":" + args[5]);
 		frmDistributedBackupSystem.getContentPane().add(mdbAddressLabel, "4, 8");
 
-		final JLabel lblMaxsize = new JLabel("MaxSize ("+DEFAULT_MAX_SIZE+" MB)");
+		lblMaxsize = new JLabel("MaxSize ("+DEFAULT_MAX_SIZE+" MB)");
 		frmDistributedBackupSystem.getContentPane().add(lblMaxsize, "4, 10");
 
 		maxUsedSpace = new JSlider();
@@ -266,5 +263,10 @@ public class StartWindow {
 	
 	public int getMaxUsedSpace() {
 		return (int) maxUsedSpace.getValue();
+	}
+
+	public void setMaxUsedSpace(int num) {
+		maxUsedSpace.setValue(num);
+		lblMaxsize.setText("MaxSize ("+num+" MB)");
 	}
 }

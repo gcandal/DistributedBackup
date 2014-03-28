@@ -12,10 +12,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import net.MulticastReceiver;
 import net.MulticastSender;
 import utils.ChunkManager;
+import utils.StateKeeper;
 
-//TODO save app state each minute(?)
-
-public class Processor {
+public class Processor extends Thread{
 
 	public static final float version = (float) 1.0;
 	private StartWindow gui;
@@ -32,10 +31,11 @@ public class Processor {
 	private ConcurrentLinkedQueue<Message> messageQueue;
 	private ConcurrentLinkedQueue<Chunk> waitingChunks;
 	private ConcurrentLinkedQueue<Message> outgoingQueue;
+	private StateKeeper state;
 
 	private long usedSpace = 0;
 
-	public Processor(final String[] args) {
+	public Processor(final String[] args,StartWindow newGui) {
 		messageQueue = new ConcurrentLinkedQueue<>();
 		waitingChunks = new ConcurrentLinkedQueue<>();
 		outgoingQueue = new ConcurrentLinkedQueue<>();
@@ -48,21 +48,44 @@ public class Processor {
 		mcSender = new MulticastSender(args[0], Integer.parseInt(args[1]));
 		mdbSender = new MulticastSender(args[2], Integer.parseInt(args[3]));
 		mdrSender = new MulticastSender(args[4], Integer.parseInt(args[5]));
-
 		chunks = new ConcurrentHashMap<String, Chunk>();
 		myFiles = new ConcurrentHashMap<String, String>();
 		nrChunksByFile = new ConcurrentHashMap<String, Long>();
 		filesToBeRestored = new ConcurrentHashMap<String, String>();
-	}
-
-	public void addGui(StartWindow newGui) {
-		gui = newGui;
+		state = new StateKeeper("state.ser",30000);
+		gui=newGui;
 	}
 
 	public void newInputMessage(Message message) {
 		messageQueue.add(message);
 	}
 
+	@Override
+	@SuppressWarnings("unchecked")
+	public void run() {
+		try {
+			state.load();
+			chunks = (ConcurrentHashMap<String, Chunk>) state.getObject("chunks");
+			myFiles = (ConcurrentHashMap<String, String>) state.getObject("myFiles");
+			nrChunksByFile = (ConcurrentHashMap<String, Long>) state.getObject("nrChunksByFile");
+			filesToBeRestored = (ConcurrentHashMap<String, String>) state.getObject("filesToBeRestored");
+			usedSpace = (Long) state.getObject("usedSpace");
+			gui.setUsedSpace(usedSpace);
+			gui.setMaxUsedSpace((Integer) state.getObject("maxSpace"));
+			notifyGuiFileChange();
+			gui.log("Loaded from last session.");
+		} catch (Exception e) {
+			gui.log("Starting as new system");
+			state.addObject("chunks",chunks);
+			state.addObject("myFiles", myFiles);
+			state.addObject("nrChunksByFile", nrChunksByFile);
+			state.addObject("filesToBeRestored", filesToBeRestored);
+			state.addObject("usedSpace",new Long(usedSpace));
+			state.addObject("maxSpace", new Integer(gui.getMaxUsedSpace()));
+		}
+		process();
+	}
+	
 	public void process() {
 		mcReceiver.start();
 		mdbReceiver.start();
@@ -144,6 +167,12 @@ public class Processor {
 						sendPutChunk(chk);
 					waitingChunks.add(chk);
 				}
+			}
+			try {
+				if(state.saveIfTime())
+					gui.log("Saved state");
+			} catch (Exception e) {
+					gui.log("Couldn't save state");
 			}
 		}
 	}

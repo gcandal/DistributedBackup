@@ -4,13 +4,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Comparator;
 import java.util.HashSet;
 
 import utils.ChunkManager;
 
-public class Chunk {
+public class Chunk implements Serializable {
 
+	private static final long serialVersionUID = -5008936668929321920L;
 	private String fileIdString;
 	private int chunkNo;
 	private String chunkId;

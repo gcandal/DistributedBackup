@@ -108,7 +108,7 @@ public class ChunkManager {
 		toStream.close();
 		out.close();
 	}
-
+/*
 	public static void createMockFile(String filepath, int size) throws IOException {
 		File mock = new File(filepath);
 		mock.createNewFile();
@@ -120,7 +120,7 @@ public class ChunkManager {
 
 		buf.close();
 	}
-
+*/
 	public static int getChunkSize() {
 		return CHUNK_SIZE;
 	}
