@@ -1,8 +1,10 @@
 package net;
 
 import java.net.DatagramPacket;
-import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
+import java.net.NetworkInterface;
+import java.net.SocketAddress;
 
 import core.Message;
 import core.Processor;
@@ -15,11 +17,13 @@ public class MulticastReceiver extends Thread {
 	private int port;
 	private boolean end;
 	private Processor processor;
+	private String iface;
 
-	public MulticastReceiver(String addr, int port, Processor processor) {
+	public MulticastReceiver(String addr, int port, String iface, Processor processor) {
 		this.addr = addr;
 		this.port = port;
 		this.processor = processor;
+		this.iface = iface;
 		end = false;
 	}
 
@@ -27,9 +31,10 @@ public class MulticastReceiver extends Thread {
 	public void run() {
 		try{
 
-			socket = new MulticastSocket(port);
-			InetAddress iaddr = InetAddress.getByName(addr);
-			socket.joinGroup(iaddr);
+			socket = new MulticastSocket(port); 
+			SocketAddress socketAddress = new InetSocketAddress(addr, port);
+			NetworkInterface networkInterface = NetworkInterface.getByName(iface);
+			socket.joinGroup(socketAddress, networkInterface);
 
 			byte []buf = new byte[BUFSIZE];
 			DatagramPacket packet = new DatagramPacket(buf, buf.length);
@@ -40,7 +45,7 @@ public class MulticastReceiver extends Thread {
 				processMessage(buf,packet.getLength(),packet.getAddress().getHostAddress());
 			}
 
-			socket.leaveGroup(iaddr);
+			socket.leaveGroup(socketAddress, networkInterface);
 			socket.close();
 		}
 		catch(Exception e)

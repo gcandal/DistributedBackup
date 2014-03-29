@@ -187,7 +187,8 @@ public class StartWindow {
 		btnBackup.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent arg0) {
-				core.addFile(selectedFile.getAbsolutePath(), (int) replicationDegree.getValue());
+				if(selectedFile!= null)
+					core.addFile(selectedFile.getAbsolutePath(), (int) replicationDegree.getValue());
 			}
 		});
 		frmDistributedBackupSystem.getContentPane().add(btnBackup, "10, 16");
@@ -262,7 +263,7 @@ public class StartWindow {
 	}
 	
 	public int getMaxUsedSpace() {
-		return (int) maxUsedSpace.getValue();
+		return maxUsedSpace.getValue();
 	}
 
 	public void setMaxUsedSpace(int num) {

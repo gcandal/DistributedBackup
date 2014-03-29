@@ -39,11 +39,11 @@ public class Processor extends Thread{
 		messageQueue = new ConcurrentLinkedQueue<>();
 		waitingChunks = new ConcurrentLinkedQueue<>();
 		outgoingQueue = new ConcurrentLinkedQueue<>();
-		mcReceiver = new MulticastReceiver(args[0], Integer.parseInt(args[1]),
+		mcReceiver = new MulticastReceiver(args[0], Integer.parseInt(args[1]),args[6],
 				this);
-		mdbReceiver = new MulticastReceiver(args[2], Integer.parseInt(args[3]),
+		mdbReceiver = new MulticastReceiver(args[2], Integer.parseInt(args[3]),args[6],
 				this);
-		mdrReceiver = new MulticastReceiver(args[4], Integer.parseInt(args[5]),
+		mdrReceiver = new MulticastReceiver(args[4], Integer.parseInt(args[5]),args[6],
 				this);
 		mcSender = new MulticastSender(args[0], Integer.parseInt(args[1]));
 		mdbSender = new MulticastSender(args[2], Integer.parseInt(args[3]));
@@ -124,7 +124,7 @@ public class Processor extends Thread{
 					break;
 				}
 				case "REMOVED": {
-					processRemoved(msg);
+					processRemoved(msg,true);
 					break;
 				}
 				}
@@ -181,7 +181,7 @@ public class Processor extends Thread{
 		}
 	}
 
-	private void processRemoved(Message msg) { 
+	private void processRemoved(Message msg, boolean send) { 
 		Chunk chk;
 
 		synchronized (chunks) {
@@ -191,9 +191,13 @@ public class Processor extends Thread{
 
 		if (chk == null)
 			return;
+		
+		chk.removeHostWithChunk(msg.getSenderIp());
 
+		if(!send)
+			return;
+		
 		if (msg.ready()) {
-			chk.removeHostWithChunk(msg.getSenderIp());
 			if (chk.getCounter() < chk.getReplicationDeg()) {
 
 				Message newMsg = new Message("PUTCHUNK", version,
@@ -210,6 +214,12 @@ public class Processor extends Thread{
 				}
 
 				outgoingQueue.add(newMsg);
+				/*
+				if(!chk.shouldResend()) // qd e removido e fica a baixo, tenta 5 vezes
+				{
+					chk.restart();
+					waitingChunks.add(chk);
+				}*/
 			}
 		} else
 			messageQueue.add(msg);
@@ -238,7 +248,7 @@ public class Processor extends Thread{
 			return;
 
 		if (chk.isMine()) {
-			// write to disk -> if all chunks are present, merge file with
+			// write to disk -> if all chunks are present, merge file with			
 			// name in filesToBeRestored
 			String filename = chk.getTextFileId();
 			long nrChunks = nrChunksByFile.get(filename);
@@ -321,40 +331,56 @@ public class Processor extends Thread{
 		Chunk c;
 		c = chunks.get(Chunk.getChunkId(msg.getTextFileId(), msg.getChunkNo()));
 
-		if (c != null)
-			if (!c.isMine())
-				c.addHostWithChunk(msg.getSenderIp());
+		if (c != null) {
+			c.addHostWithChunk(msg.getSenderIp());
+		}
 	}
 
 	private void processPutChunk(Message msg) {
 
 		if (myFiles.containsKey(msg.getTextFileId()))
-			return;
-
+			return;	
+		
 		if (msg.ready()) {
 			Message newMsg = new Message("STORED", version, msg.getTextFileId());
 			newMsg.setChunkNo(msg.getChunkNo());
 
-			if (sizes[0] + msg.getBody().length <= gui.getMaxUsedSpace()) {
-				Chunk chunk = new Chunk(msg.getTextFileId(), msg.getChunkNo(),
-						msg.getReplicationDeg(), msg.getSenderIp());
-
-				try {
-					chunk.save(msg.getBody());
-				} catch (IOException e) {
-					gui.log("Couldn't write " + chunk.getChunkId() + " to disk");
-
-					return;
+			for (Message m : messageQueue) {
+				if (m.getMessageType().equals("REMOVED")
+						&& Chunk.getChunkId(m.getTextFileId(), m.getChunkNo())
+								.equals(Chunk.getChunkId(msg.getTextFileId(), msg.getChunkNo()))) {
+					processRemoved(m, false);
+					messageQueue.remove(m);
+					break;
 				}
-
-				sizes[0] += msg.getBody().length;
-				chunks.put(
-						Chunk.getChunkId(msg.getTextFileId(), msg.getChunkNo()),
-						chunk);
-
-				outgoingQueue.add(newMsg);
 			}
+			
+			if(chunks.containsKey(Chunk.getChunkId(msg.getTextFileId(), msg.getChunkNo())))
+			{
+				outgoingQueue.add(newMsg);
+			} else
+			{
+				if (sizes[0] + msg.getBody().length <= sizes[1]*1000000) {
+					Chunk chunk = new Chunk(msg.getTextFileId(), msg.getChunkNo(),
+							msg.getReplicationDeg(), msg.getSenderIp());
 
+					try {
+						chunk.save(msg.getBody());
+					} catch (IOException e) {
+						gui.log("Couldn't write " + chunk.getChunkId() + " to disk");
+
+						return;
+					}
+
+					sizes[0] += msg.getBody().length;
+					chunks.put(
+							Chunk.getChunkId(msg.getTextFileId(), msg.getChunkNo()),
+							chunk);
+
+					outgoingQueue.add(newMsg);
+				}
+			}
+			
 			gui.log("processPutChunk Received " + msg.toString());
 		} else {
 			messageQueue.add(msg);

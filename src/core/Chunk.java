@@ -61,6 +61,13 @@ public class Chunk implements Serializable {
 		this.lastSend = 0;
 	}
 	
+	public void restart()
+	{
+		lastSend = 0;
+		timeInterval = 500;
+		sendTimes = 0;
+	}
+	
 	public void notifySent()
 	{
 		lastSend = System.currentTimeMillis();
@@ -76,7 +83,7 @@ public class Chunk implements Serializable {
 	
 	public boolean shouldResend()
 	{
-		return (mine && hostsWithChunk.size()<replicationDeg && sendTimes < 5);	
+		return (hostsWithChunk.size()<replicationDeg && sendTimes < 5);	
 	}
 	
 	public void addHostWithChunk(String ip)
