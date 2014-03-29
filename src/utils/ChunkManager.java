@@ -97,7 +97,6 @@ public class ChunkManager {
 		int position = 0;
 
 		File to = new File(filename + numToAscii(chunkNo));
-		System.out.println(to.getAbsolutePath());
 		to.createNewFile();
 		
 		FileOutputStream toStream = new FileOutputStream(to);

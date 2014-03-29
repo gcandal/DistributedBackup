@@ -1,5 +1,6 @@
 package gui;
 
+import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -10,6 +11,7 @@ import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JScrollBar;
 import javax.swing.JSlider;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
@@ -40,6 +42,7 @@ public class StartWindow {
 	private JSpinner replicationDegree;
 	private JSlider maxUsedSpace;
 	private JLabel lblCurrentsize;
+	private JScrollBar verticalScroll;
 	private final JFileChooser fc = new JFileChooser();
 	private File selectedFile;
 
@@ -102,6 +105,7 @@ public class StartWindow {
 		frmDistributedBackupSystem.setTitle("Distributed Backup System");
 		frmDistributedBackupSystem.setBounds(100, 100, 588, 462);
 		frmDistributedBackupSystem.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frmDistributedBackupSystem.setPreferredSize(new Dimension(500, 500));
 		frmDistributedBackupSystem.getContentPane().setLayout(new FormLayout(new ColumnSpec[] {
 				FormFactory.RELATED_GAP_COLSPEC,
 				FormFactory.DEFAULT_COLSPEC,
@@ -221,6 +225,7 @@ public class StartWindow {
 		
 		JScrollPane scrollPane = new JScrollPane();
 		frmDistributedBackupSystem.getContentPane().add(scrollPane, "4, 26, 7, 1, fill, fill");
+		verticalScroll = scrollPane.getVerticalScrollBar();
 		
 		logs = new JTextArea();
 		scrollPane.setViewportView(logs);
@@ -245,6 +250,7 @@ public class StartWindow {
 
 	public void log(String text) {
 		logs.append(text + "\n");
+		verticalScroll.setValue( verticalScroll.getMaximum() );
 	}
 	
 	public void replaceFileList(Object[] objects) {
