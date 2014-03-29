@@ -85,7 +85,7 @@ public class Chunk implements Serializable {
 	{
 		return (hostsWithChunk.size()<replicationDeg && sendTimes < 5);	
 	}
-	
+		
 	public void addHostWithChunk(String ip)
 	{
 		hostsWithChunk.add(ip);

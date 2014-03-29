@@ -116,7 +116,7 @@ public class Processor extends Thread{
 					break;
 				}
 				case "CHUNK": {
-					processChunk(msg, false);
+					processChunk(msg);
 					break;
 				}
 				case "DELETE": {
@@ -170,6 +170,10 @@ public class Processor extends Thread{
 					if (chk.timeOver())
 						sendPutChunk(chk);
 					waitingChunks.add(chk);
+				} else if(chk.getCounter() < chk.getReplicationDeg())
+				{
+					gui.log("GIVING UP ON CHUNK " + chk.getChunkId());
+					gui.log(" -- file " + myFiles.get(chk.getTextFileId()) + " will not get the desired repdeg");
 				}
 			}
 			try {
@@ -235,7 +239,7 @@ public class Processor extends Thread{
 		gui.log("processDelete for " + msg.getTextFileId());
 	}
 
-	private void processChunk(Message msg, boolean repeated) { 
+	private void processChunk(Message msg) { 
 		// if chunk is received, kills
 		// waiting getchunk message
 		Chunk chk = chunks.get(Chunk.getChunkId(msg.getTextFileId(), msg.getChunkNo()));
@@ -248,6 +252,14 @@ public class Processor extends Thread{
 		if (chk.isMine()) {
 			// write to disk -> if all chunks are present, merge file with			
 			// name in filesToBeRestored
+			
+			try {
+				chk.save(msg.getBody());
+			} catch (IOException e) {
+				gui.log("Couldn't write " + chk.getChunkId() + " to disk");
+				e.printStackTrace();
+			}
+			
 			String filename = chk.getTextFileId();
 			long nrChunks = nrChunksByFile.get(filename);
 			String newName = filesToBeRestored.get(filename);
@@ -271,21 +283,7 @@ public class Processor extends Thread{
 					gui.log("Couldn't restore " + fileRealName);
 				}
 				filesToBeRestored.remove(filename);
-			} else {
-				
-				if(repeated)
-					return;
-				
-				try {
-					chk.save(msg.getBody());
-				} catch (IOException e) {
-					gui.log("Couldn't write " + chk.getChunkId() + " to disk");
-					e.printStackTrace();
-				}
-				
-				processChunk(msg, true);
 			}
-
 		} else { // Remove get chunk msg if in queue
 			for (Message m : messageQueue) {
 				if (m.getMessageType().equals("CHUNK")

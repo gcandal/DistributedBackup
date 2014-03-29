@@ -31,6 +31,7 @@ import java.awt.event.MouseEvent;
 
 import javax.swing.JScrollPane;
 
+@SuppressWarnings("unused")
 public class StartWindow {
 
 	private final int DEFAULT_MAX_SIZE = 50;
@@ -107,9 +108,9 @@ public class StartWindow {
 		fc.setAcceptAllFileFilterUsed(false);
 		frmDistributedBackupSystem = new JFrame();
 		frmDistributedBackupSystem.setTitle("Distributed Backup System");
-		frmDistributedBackupSystem.setBounds(100, 100, 588, 462);
+		frmDistributedBackupSystem.setBounds(100, 100, 1000, 1000);
 		frmDistributedBackupSystem.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frmDistributedBackupSystem.setPreferredSize(new Dimension(500, 500));
+	//	frmDistributedBackupSystem.setPreferredSize(new Dimension(500, 500));
 		frmDistributedBackupSystem.getContentPane().setLayout(new FormLayout(new ColumnSpec[] {
 				FormFactory.RELATED_GAP_COLSPEC,
 				FormFactory.DEFAULT_COLSPEC,
