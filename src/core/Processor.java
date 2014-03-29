@@ -116,7 +116,7 @@ public class Processor extends Thread{
 					break;
 				}
 				case "CHUNK": {
-					processChunk(msg);
+					processChunk(msg, false);
 					break;
 				}
 				case "DELETE": {
@@ -239,7 +239,7 @@ public class Processor extends Thread{
 		gui.setUsedSpace(sizes[0]);
 	}
 
-	private void processChunk(Message msg) { 
+	private void processChunk(Message msg, boolean repeated) { 
 		// if chunk is received, kills
 		// waiting getchunk message
 		Chunk chk = chunks.get(Chunk.getChunkId(msg.getTextFileId(), msg.getChunkNo()));
@@ -255,9 +255,16 @@ public class Processor extends Thread{
 			String newName = filesToBeRestored.get(filename);
 			if (ChunkManager.countChunks("./", filename) == nrChunks
 					&& newName != null) {
+				
 				String fileRealName = myFiles.get(filename);
-				fileRealName = fileRealName.substring(fileRealName
+				
+				if(fileRealName.contains("/"))
+					fileRealName = fileRealName.substring(fileRealName
 						.lastIndexOf('/') + 1);
+				else
+					fileRealName = fileRealName.substring(fileRealName
+						.lastIndexOf('\\') + 1);
+				
 				try {
 					ChunkManager.mergeChunks("./", filename, newName,
 							fileRealName);
@@ -266,6 +273,16 @@ public class Processor extends Thread{
 					gui.log("Couldn't restore " + fileRealName);
 				}
 				filesToBeRestored.remove(filename);
+			} else {
+				try {
+					chk.save(msg.getBody());
+				} catch (IOException e) {
+					gui.log("Couldn't write " + chk.getChunkId() + " to disk");
+					e.printStackTrace();
+				}
+				
+				if(!repeated)
+					processChunk(msg, true);
 			}
 
 		} else { // Remove get chunk msg if in queue
