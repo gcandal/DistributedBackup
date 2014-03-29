@@ -274,6 +274,10 @@ public class Processor extends Thread{
 				}
 				filesToBeRestored.remove(filename);
 			} else {
+				
+				if(repeated)
+					return;
+				
 				try {
 					chk.save(msg.getBody());
 				} catch (IOException e) {
@@ -281,8 +285,7 @@ public class Processor extends Thread{
 					e.printStackTrace();
 				}
 				
-				if(!repeated)
-					processChunk(msg, true);
+				processChunk(msg, true);
 			}
 
 		} else { // Remove get chunk msg if in queue
