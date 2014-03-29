@@ -1,5 +1,7 @@
 package net;
 
+import gui.StartWindow;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -14,10 +16,12 @@ public class MulticastSender {
 	private InetAddress addr;
 	private String addrStr;
 	private int port;
+	private StartWindow gui;
 
-	public MulticastSender(String addr, int port) {
+	public MulticastSender(String addr, int port, StartWindow gui) {
 		addrStr=addr;
 		this.port=port;
+		this.gui = gui;
 	}
 
 	public void start() {
@@ -26,7 +30,7 @@ public class MulticastSender {
 			socket = new MulticastSocket(port);
 			socket.setTimeToLive(TTL);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
+			gui.log("Not able to start sender socket.");
 		}
 	}
 
@@ -36,7 +40,7 @@ public class MulticastSender {
 		try {
 			socket.send(packet);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			gui.log("Not able to send message.");
 		}
 	}
 

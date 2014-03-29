@@ -40,14 +40,14 @@ public class Processor extends Thread{
 		waitingChunks = new ConcurrentLinkedQueue<>();
 		outgoingQueue = new ConcurrentLinkedQueue<>();
 		mcReceiver = new MulticastReceiver(args[0], Integer.parseInt(args[1]),args[6],
-				this);
+				this,gui);
 		mdbReceiver = new MulticastReceiver(args[2], Integer.parseInt(args[3]),args[6],
-				this);
+				this,gui);
 		mdrReceiver = new MulticastReceiver(args[4], Integer.parseInt(args[5]),args[6],
-				this);
-		mcSender = new MulticastSender(args[0], Integer.parseInt(args[1]));
-		mdbSender = new MulticastSender(args[2], Integer.parseInt(args[3]));
-		mdrSender = new MulticastSender(args[4], Integer.parseInt(args[5]));
+				this,gui);
+		mcSender = new MulticastSender(args[0], Integer.parseInt(args[1]),gui);
+		mdbSender = new MulticastSender(args[2], Integer.parseInt(args[3]),gui);
+		mdrSender = new MulticastSender(args[4], Integer.parseInt(args[5]),gui);
 		chunks = new ConcurrentHashMap<String, Chunk>();
 		myFiles = new ConcurrentHashMap<String, String>();
 		nrChunksByFile = new ConcurrentHashMap<String, Long>();
@@ -214,13 +214,8 @@ public class Processor extends Thread{
 				}
 
 				outgoingQueue.add(newMsg);
-				/*
-				if(!chk.shouldResend()) // qd e removido e fica a baixo, tenta 5 vezes
-				{
-					chk.restart();
-					waitingChunks.add(chk);
-				}*/
 			}
+			gui.log("processRemoved");
 		} else
 			messageQueue.add(msg);
 	}
@@ -237,6 +232,7 @@ public class Processor extends Thread{
 
 		sizes[0] -= ChunkManager.deleteChunks("./", msg.getTextFileId());
 		gui.setUsedSpace(sizes[0]);
+		gui.log("processDelete for " + msg.getTextFileId());
 	}
 
 	private void processChunk(Message msg, boolean repeated) { 
@@ -246,6 +242,8 @@ public class Processor extends Thread{
 
 		if (chk == null)
 			return;
+		
+		gui.log("processChunk " + msg.getTextFileId() + " " + msg.getChunkNo());
 
 		if (chk.isMine()) {
 			// write to disk -> if all chunks are present, merge file with			
@@ -302,6 +300,8 @@ public class Processor extends Thread{
 
 	private void processGetChunk(Message msg) { 
 		if (msg.ready()) {
+			gui.log("processChunk " + msg.getTextFileId() + " " + msg.getChunkNo());
+
 			Chunk chk;
 
 			chk = chunks.get(Chunk.getChunkId(msg.getTextFileId(),
@@ -393,6 +393,7 @@ public class Processor extends Thread{
 					}
 
 					sizes[0] += msg.getBody().length;
+					gui.setUsedSpace(sizes[0]);
 					chunks.put(
 							Chunk.getChunkId(msg.getTextFileId(), msg.getChunkNo()),
 							chunk);

@@ -49,7 +49,6 @@ public class Message {
 
 		String[] inputs = headerstr.split(" ");
 
-		//TODO check if valid
 		messageType = inputs[0];
 		if(!messageType.equals("DELETE"))
 		{

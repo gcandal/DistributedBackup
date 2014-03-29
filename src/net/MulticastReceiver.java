@@ -1,5 +1,7 @@
 package net;
 
+import gui.StartWindow;
+
 import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
@@ -18,13 +20,15 @@ public class MulticastReceiver extends Thread {
 	private boolean end;
 	private Processor processor;
 	private String iface;
+	private StartWindow gui;
 
-	public MulticastReceiver(String addr, int port, String iface, Processor processor) {
+	public MulticastReceiver(String addr, int port, String iface, Processor processor, StartWindow gui) {
 		this.addr = addr;
 		this.port = port;
 		this.processor = processor;
 		this.iface = iface;
 		end = false;
+		this.gui = gui;
 	}
 
 	@Override
@@ -50,7 +54,7 @@ public class MulticastReceiver extends Thread {
 		}
 		catch(Exception e)
 		{
-			//TODO send to gui
+			gui.log("error while receiving package");
 		}
 	}
 	
@@ -60,8 +64,7 @@ public class MulticastReceiver extends Thread {
 			msg = new Message(buf,size,ip);
 			processor.newInputMessage(msg);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			gui.log("error while processing new message");
 		}
 	}
 }

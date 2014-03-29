@@ -69,7 +69,11 @@ public class StartWindow {
 	 */
 	public static void main(final String[] args) {
 		
-		//test();
+		if(args.length!=7)
+		{
+			System.out.println("The 7th argument must be the interface to use (en0, en1, ...)");
+			return;
+		}
 		
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
