@@ -89,7 +89,7 @@ public class Processor extends Thread{
 		}
 		process();
 	}
-	
+
 	public void process() {
 		mcReceiver.start();
 		mdbReceiver.start();
@@ -176,7 +176,7 @@ public class Processor extends Thread{
 				if(state.saveIfTime())
 					gui.log("Saved state");
 			} catch (Exception e) {
-					gui.log("Couldn't save state");
+				gui.log("Couldn't save state");
 			}
 		}
 	}
@@ -191,12 +191,12 @@ public class Processor extends Thread{
 
 		if (chk == null)
 			return;
-		
+
 		chk.removeHostWithChunk(msg.getSenderIp());
 
 		if(!send)
 			return;
-		
+
 		if (msg.ready()) {
 			if (chk.getCounter() < chk.getReplicationDeg()) {
 
@@ -292,7 +292,7 @@ public class Processor extends Thread{
 			for (Message m : messageQueue) {
 				if (m.getMessageType().equals("CHUNK")
 						&& Chunk.getChunkId(m.getTextFileId(), m.getChunkNo())
-								.equals(chk.getChunkId())) {
+						.equals(chk.getChunkId())) {
 					messageQueue.remove(m);
 					break;
 				}
@@ -360,7 +360,7 @@ public class Processor extends Thread{
 
 		if (myFiles.containsKey(msg.getTextFileId()))
 			return;	
-		
+
 		if (msg.ready()) {
 			Message newMsg = new Message("STORED", version, msg.getTextFileId());
 			newMsg.setChunkNo(msg.getChunkNo());
@@ -368,13 +368,13 @@ public class Processor extends Thread{
 			for (Message m : messageQueue) {
 				if (m.getMessageType().equals("REMOVED")
 						&& Chunk.getChunkId(m.getTextFileId(), m.getChunkNo())
-								.equals(Chunk.getChunkId(msg.getTextFileId(), msg.getChunkNo()))) {
+						.equals(Chunk.getChunkId(msg.getTextFileId(), msg.getChunkNo()))) {
 					processRemoved(m, false);
 					messageQueue.remove(m);
 					break;
 				}
 			}
-			
+
 			if(chunks.containsKey(Chunk.getChunkId(msg.getTextFileId(), msg.getChunkNo())))
 			{
 				outgoingQueue.add(newMsg);
@@ -400,7 +400,7 @@ public class Processor extends Thread{
 					outgoingQueue.add(newMsg);
 				}
 			}
-			
+
 			gui.log("processPutChunk Received " + msg.toString());
 		} else {
 			messageQueue.add(msg);
@@ -415,17 +415,18 @@ public class Processor extends Thread{
 				fileId = pair.getKey();
 				break;
 			}
-
-			// chunks will be deleted when message is received
-			// no need to do it here
-			
-			
-			if (fileId == null) {
-				gui.log("File to be removed not found");
-				return;
-			}
-			myFiles.remove(fileId);
 		}
+
+		// chunks will be deleted when message is received
+		// no need to do it here
+
+
+		if (fileId == null) {
+			gui.log("File to be removed not found");
+			return;
+		}
+		myFiles.remove(fileId);
+
 		Message message = new Message("DELETE", version, fileId);
 		outgoingQueue.add(message);
 		notifyGuiFileChange();
@@ -466,22 +467,27 @@ public class Processor extends Thread{
 	public void setSpaceLimit(int mbLimit) {
 		
 		sizes[1] = mbLimit;
-		
+
 		if(sizes[0] <= mbLimit*1000000)
 			return;
-		
-		PriorityQueue<Chunk> orderedChunks = new PriorityQueue<Chunk>(chunks.size(), new Chunk.ChunkCompare());
-		
+
+		PriorityQueue<Chunk> orderedChunks = new PriorityQueue<Chunk>(chunks.size()+1, new Chunk.ChunkCompare());
+
 		Iterator<Chunk> it = chunks.values().iterator();
 		while (it.hasNext()) {
 			Chunk chunk = it.next();
 			orderedChunks.add(chunk);
 		}
-		
-		while(sizes[0] <= mbLimit*1000000){
+
+		while(sizes[0] > mbLimit*1000000){
 			Chunk chk = orderedChunks.poll();
+			if(chk == null)
+			{
+				gui.log("Error in selecting best chunk to be erased");
+				return;
+			}
 			gui.log("Removed chunk " + chk.getChunkId() + " repdeg " + chk.getReplicationDeg() + " currentrepdeg " + chk.getCounter());
-			sizes[0] -= ChunkManager.deleteChunk("./",chk.getTextFileId());
+			sizes[0] = (int) (sizes[0] - ChunkManager.deleteChunk("./",chk.getChunkId()));
 			chunks.remove(chk.getChunkId());
 			Message message = new Message("REMOVED", version,chk.getTextFileId());
 			message.setChunkNo(chk.getChunkNo());
