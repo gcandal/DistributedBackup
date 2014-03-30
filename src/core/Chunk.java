@@ -201,4 +201,8 @@ public class Chunk implements Serializable {
 	public void setLastSend(long currentTimeMillis) {
 		lastSend = currentTimeMillis;
 	}
+
+	public HashSet<String> getHostsWithChunk() {
+		return hostsWithChunk;
+	}
 }

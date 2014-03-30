@@ -5,6 +5,7 @@ import gui.StartWindow;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.HashSet;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -493,10 +494,19 @@ public class Processor extends Thread{
 		}
 		myFiles.remove(fileId);
 
-		Chunk c = chunks.get(fileId + "000000");
+		long numchunks = nrChunksByFile.get(fileId);		
+		HashSet<String> ips = new HashSet<String>();
+		
+		for(int i = 0; i < numchunks; i++)
+		{
+			Chunk ch = chunks.get(Chunk.getChunkId(fileId, i));
+			if(ch!=null)
+				ips.addAll(ch.getHostsWithChunk());
+		}
+		
 		Message message = new Message("DELETE", version, fileId);
 		filesToBeDeleted.put(fileId, message);
-		deletionsMissing.put(fileId, c.getReplicationDeg());
+		deletionsMissing.put(fileId, ips.size());
 		outgoingQueue.add(message);
 		
 		notifyGuiFileChange();
