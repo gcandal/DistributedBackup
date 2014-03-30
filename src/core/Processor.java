@@ -19,7 +19,7 @@ import utils.StateKeeper;
 public class Processor extends Thread{
 
 	public static final float version = (float) 1.1;
-	private static final long DELETE_NOTIFICATION_INTERVAL = 20000;
+	private static final long DELETE_NOTIFICATION_INTERVAL = 500;
 	private StartWindow gui;
 	private MulticastReceiver mcReceiver;
 	private MulticastReceiver mdbReceiver;
@@ -34,6 +34,7 @@ public class Processor extends Thread{
 	private ConcurrentHashMap<String, Long> nrChunksByFile; // fileId, nr
 	private ConcurrentHashMap<String, String> filesToBeRestored;// fileid hash,newpath
 	private ConcurrentHashMap<String, Message> filesToBeDeleted;// fileid hash,message
+	private ConcurrentHashMap<String, Integer> deletionsMissing;// fileid hash,nr peers still with file
 	private ConcurrentLinkedQueue<Message> messageQueue;
 	private ConcurrentLinkedQueue<Chunk> waitingChunks;
 	private ConcurrentLinkedQueue<Message> outgoingQueue;
@@ -60,6 +61,8 @@ public class Processor extends Thread{
 		chunks = new ConcurrentHashMap<String, Chunk>();
 		myFiles = new ConcurrentHashMap<String, String>();
 		nrChunksByFile = new ConcurrentHashMap<String, Long>();
+		filesToBeDeleted = new ConcurrentHashMap<String, Message>();
+		deletionsMissing = new ConcurrentHashMap<String, Integer>();
 		filesToBeRestored = new ConcurrentHashMap<String, String>();
 		state = new StateKeeper("state.ser",30000);
 		gui=newGui;
@@ -221,18 +224,20 @@ public class Processor extends Thread{
 	}
 
 	private void processDeleted(Message msg) {
-		
 		gui.log("processDeleted " + msg.getTextFileId() + " from " + msg.getSenderIp());
-		Chunk chk = chunks.get(Chunk.getChunkId(msg.getTextFileId(),
-				msg.getChunkNo()));
+		Integer deletions = deletionsMissing.get(msg.getTextFileId());
 		
-		chk.removeHostWithChunk(msg.getSenderIp());
-		
-		if(chk.getCounter() == 0)
+		if(deletions == null)
+			return;
+
+		if(deletions > 0) {
+			deletionsMissing.put(msg.getTextFileId(), deletions - 1);
+			gui.log("...but still " + deletions + " left");
+		}
+		else {
+			gui.log("File deleted from all peers");
 			filesToBeDeleted.remove(msg.getTextFileId());
-		else
-			gui.log("...but still " + chk.getCounter() + " left");
-		
+		}
 	}
 
 	private void processRemoved(Message msg, boolean send) { 
@@ -488,8 +493,12 @@ public class Processor extends Thread{
 		}
 		myFiles.remove(fileId);
 
+		Chunk c = chunks.get(fileId + "000000");
 		Message message = new Message("DELETE", version, fileId);
+		filesToBeDeleted.put(fileId, message);
+		deletionsMissing.put(fileId, c.getReplicationDeg());
 		outgoingQueue.add(message);
+		
 		notifyGuiFileChange();
 	}
 
