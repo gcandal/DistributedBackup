@@ -19,6 +19,7 @@ import utils.StateKeeper;
 public class Processor extends Thread{
 
 	public static final float version = (float) 1.1;
+	private static final long DELETE_NOTIFICATION_INTERVAL = 20000;
 	private StartWindow gui;
 	private MulticastReceiver mcReceiver;
 	private MulticastReceiver mdbReceiver;
@@ -32,9 +33,11 @@ public class Processor extends Thread{
 	private ConcurrentHashMap<String, String> myFiles; // fileId, filename
 	private ConcurrentHashMap<String, Long> nrChunksByFile; // fileId, nr
 	private ConcurrentHashMap<String, String> filesToBeRestored;// fileid hash,newpath
+	private ConcurrentHashMap<String, Message> filesToBeDeleted;// fileid hash,message
 	private ConcurrentLinkedQueue<Message> messageQueue;
 	private ConcurrentLinkedQueue<Chunk> waitingChunks;
 	private ConcurrentLinkedQueue<Message> outgoingQueue;
+	private long lastSend = 0;
 	private StateKeeper state;
 
 	private int[] sizes;
@@ -135,6 +138,10 @@ public class Processor extends Thread{
 					processRemoved(msg,true);
 					break;
 				}
+				case "DELETED": {
+					processDeleted(msg);
+					break;
+				}
 				}
 
 			}
@@ -173,6 +180,10 @@ public class Processor extends Thread{
 					}
 					break;
 				}
+				case "DELETED": {
+					mcSender.send(out);
+					break;
+				}
 				}
 
 			}
@@ -195,7 +206,33 @@ public class Processor extends Thread{
 			} catch (Exception e) {
 				gui.log("Couldn't save state");
 			}
+			
+			if( System.currentTimeMillis() - lastSend >= DELETE_NOTIFICATION_INTERVAL ) {
+				lastSend = System.currentTimeMillis();
+				
+				Iterator<Message> it = filesToBeDeleted.values().iterator();
+				
+				while (it.hasNext()) {
+					Message deleteMessage = it.next();
+					outgoingQueue.add(deleteMessage);
+				}
+			}
 		}
+	}
+
+	private void processDeleted(Message msg) {
+		
+		gui.log("processDeleted " + msg.getTextFileId() + " from " + msg.getSenderIp());
+		Chunk chk = chunks.get(Chunk.getChunkId(msg.getTextFileId(),
+				msg.getChunkNo()));
+		
+		chk.removeHostWithChunk(msg.getSenderIp());
+		
+		if(chk.getCounter() == 0)
+			filesToBeDeleted.remove(msg.getTextFileId());
+		else
+			gui.log("...but still " + chk.getCounter() + " left");
+		
 	}
 
 	private void processRemoved(Message msg, boolean send) { 
@@ -230,17 +267,28 @@ public class Processor extends Thread{
 
 	private void processDelete(Message msg) {
 		Iterator<Chunk> it = chunks.values().iterator();
+		boolean deleted = false;
+		
 		while (it.hasNext()) {
 			Chunk chunk = it.next();
 			if (chunk.getTextFileId().equals(msg.getTextFileId())) {
 				waitingChunks.remove(chunk);
 				it.remove();
+				deleted = true;
 			}
 		}
 
+		if(deleted)
+			sendDeleted(msg);
+		
 		sizes[0] -= ChunkManager.deleteChunks("./", msg.getTextFileId());
 		gui.setUsedSpace(sizes[0]);
 		gui.log("processDelete for " + msg.getTextFileId());
+	}
+	
+	private void sendDeleted(Message msg) {
+		Message newMsg = new Message("DELETED", version, msg.getTextFileId());
+		outgoingQueue.add(newMsg);
 	}
 
 	private void processChunk(Message msg) { 
