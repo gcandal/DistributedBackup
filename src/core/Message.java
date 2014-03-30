@@ -11,7 +11,7 @@ public class Message {
 	private int chunkNo;
 	private int replicationDeg=-1;
 	private byte[] body;
-	private String senderIp;
+	private String senderIp, sendTo;
 	private long timestamp;
 	private long randomDelay;
 
@@ -224,4 +224,11 @@ public class Message {
 		return (dif>0);
 	}
 
+	public void setDestintyIp(String sendTo) {
+		this.sendTo = sendTo;
+	}
+
+	public String getDestinyIp() {
+		return sendTo;
+	}
 }

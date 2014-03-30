@@ -66,8 +66,8 @@ public class UnicastSender {
 
 		try {
 
-			DatagramPacket packet = new DatagramPacket(buf, buf.length, InetAddress.getByName(msg.getSenderIp()), port);
-
+			DatagramPacket packet = new DatagramPacket(buf, buf.length, InetAddress.getByName(msg.getDestinyIp()), port);
+			
 			socket.send(packet);
 
 		} catch (IOException e) {

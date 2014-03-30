@@ -316,6 +316,7 @@ public class Processor extends Thread{
 
 			Message newMsg = new Message("CHUNK", version, msg.getTextFileId());
 			newMsg.setChunkNo(msg.getChunkNo());
+			newMsg.setDestintyIp(msg.getSenderIp());
 
 			try {
 				newMsg.setBody(chk.load());
