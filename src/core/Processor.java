@@ -11,20 +11,16 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.MulticastReceiver;
 import net.MulticastSender;
-import net.UnicastReceiver;
-import net.UnicastSender;
 import utils.ChunkManager;
 import utils.StateKeeper;
 
 public class Processor extends Thread{
 
-	public static final float version = (float) 1.1;
+	public static final float version = (float) 1.0;
 	private StartWindow gui;
 	private MulticastReceiver mcReceiver;
 	private MulticastReceiver mdbReceiver;
 	private MulticastReceiver mdrReceiver;
-	private UnicastReceiver uniReceiver;
-	private UnicastSender uniSender;
 	private MulticastSender mcSender;
 	private MulticastSender mdbSender;
 	private MulticastSender mdrSender;
@@ -49,12 +45,9 @@ public class Processor extends Thread{
 				this,gui);
 		mdrReceiver = new MulticastReceiver(args[4], Integer.parseInt(args[5]),args[6],
 				this,gui);
-		uniReceiver = new UnicastReceiver(Integer.parseInt(args[7]),
-				this,gui);
 		mcSender = new MulticastSender(args[0], Integer.parseInt(args[1]),gui);
 		mdbSender = new MulticastSender(args[2], Integer.parseInt(args[3]),gui);
 		mdrSender = new MulticastSender(args[4], Integer.parseInt(args[5]),gui);
-		uniSender = new UnicastSender(Integer.parseInt(args[8]),gui);
 		chunks = new ConcurrentHashMap<String, Chunk>();
 		myFiles = new ConcurrentHashMap<String, String>();
 		nrChunksByFile = new ConcurrentHashMap<String, Long>();
@@ -69,7 +62,7 @@ public class Processor extends Thread{
 	public void newInputMessage(Message message) {
 		messageQueue.add(message);
 	}
-	
+
 	@Override
 	@SuppressWarnings("unchecked")
 	public void run() {
@@ -101,11 +94,9 @@ public class Processor extends Thread{
 		mcReceiver.start();
 		mdbReceiver.start();
 		mdrReceiver.start();
-		uniReceiver.start();
 		mcSender.start();
 		mdbSender.start();
 		mdrSender.start();
-		uniSender.start();
 		while (true) {
 			Message msg = messageQueue.poll();
 
@@ -166,11 +157,7 @@ public class Processor extends Thread{
 					break;
 				}
 				case "CHUNK": {
-					if(out.getVersion() > 1.0)
-						mdrSender.send(out);
-					else
-						uniSender.send(out);
-					
+					mdrSender.send(out);
 					break;
 				}
 				}
