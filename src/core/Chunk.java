@@ -65,7 +65,7 @@ public class Chunk implements Serializable {
 		if(!mine)
 		{
 			Random r = new Random();
-			offset = 1000 + (r.nextLong()%500);
+			offset = 8000 + (r.nextLong()%8000);
 		}
 	}
 	
@@ -77,7 +77,7 @@ public class Chunk implements Serializable {
 		if(!mine)
 		{
 			Random r = new Random();
-			offset = 8000 + (r.nextLong()%500);
+			offset = 8000 + (r.nextLong()%8000);
 		} else offset=0;
 	}
 	

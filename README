@@ -1,0 +1,10 @@
+README
+
+To run use the .jar included
+
+The arguments are as follow
+
+java -jar sdis.jar <IP-MC> <PORT-MC> <IP-MDB> <PORT-MDB> <IP-MDR> <PORT-MDR> <INTERFACE> <PORT-CHUNKS>
+
+INTERFACE is the name of the network interface to be used (for example en0, en1)
+PORT-CHUNKS is used to receive the chunks I ask for (in the version with enhancements)
