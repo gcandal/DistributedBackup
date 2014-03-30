@@ -90,7 +90,7 @@ public class Message {
 
 		//------- not delete
 		
-		sb.append(Processor.version);
+		sb.append(version);
 		sb.append(" ");
 		sb.append(fileIdString);
 		sb.append(" ");

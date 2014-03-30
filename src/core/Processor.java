@@ -11,12 +11,14 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.MulticastReceiver;
 import net.MulticastSender;
+import net.UnicastReceiver;
+import net.UnicastSender;
 import utils.ChunkManager;
 import utils.StateKeeper;
 
 public class Processor extends Thread{
 
-	public static final float version = (float) 1.0;
+	public static final float version = (float) 1.1;
 	private StartWindow gui;
 	private MulticastReceiver mcReceiver;
 	private MulticastReceiver mdbReceiver;
@@ -24,6 +26,8 @@ public class Processor extends Thread{
 	private MulticastSender mcSender;
 	private MulticastSender mdbSender;
 	private MulticastSender mdrSender;
+	private UnicastReceiver uniReceiver;
+	private UnicastSender uniSender;
 	private ConcurrentHashMap<String, Chunk> chunks; // fileId+ChuckNo
 	private ConcurrentHashMap<String, String> myFiles; // fileId, filename
 	private ConcurrentHashMap<String, Long> nrChunksByFile; // fileId, nr
@@ -48,6 +52,8 @@ public class Processor extends Thread{
 		mcSender = new MulticastSender(args[0], Integer.parseInt(args[1]),gui);
 		mdbSender = new MulticastSender(args[2], Integer.parseInt(args[3]),gui);
 		mdrSender = new MulticastSender(args[4], Integer.parseInt(args[5]),gui);
+		uniReceiver = new UnicastReceiver(Integer.parseInt(args[7]),this,gui);
+		uniSender = new UnicastSender(Integer.parseInt(args[7]),gui);
 		chunks = new ConcurrentHashMap<String, Chunk>();
 		myFiles = new ConcurrentHashMap<String, String>();
 		nrChunksByFile = new ConcurrentHashMap<String, Long>();
@@ -97,6 +103,8 @@ public class Processor extends Thread{
 		mcSender.start();
 		mdbSender.start();
 		mdrSender.start();
+		uniSender.start();
+		uniReceiver.start();
 		while (true) {
 			Message msg = messageQueue.poll();
 
@@ -157,7 +165,12 @@ public class Processor extends Thread{
 					break;
 				}
 				case "CHUNK": {
-					mdrSender.send(out);
+					if(out.getVersion() <= 1.0) {
+						mdrSender.send(out);
+					}
+					else {
+						uniSender.send(out);
+					}
 					break;
 				}
 				}
