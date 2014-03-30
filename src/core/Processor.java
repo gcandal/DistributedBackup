@@ -19,7 +19,7 @@ import utils.StateKeeper;
 public class Processor extends Thread{
 
 	public static final float version = (float) 1.1;
-	private static final long DELETE_NOTIFICATION_INTERVAL = 500;
+	private static final long DELETE_NOTIFICATION_INTERVAL = 10000;
 	private StartWindow gui;
 	private MulticastReceiver mcReceiver;
 	private MulticastReceiver mdbReceiver;
