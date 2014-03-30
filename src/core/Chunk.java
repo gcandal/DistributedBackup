@@ -77,7 +77,7 @@ public class Chunk implements Serializable {
 		if(!mine)
 		{
 			Random r = new Random();
-			offset = 1000 + (r.nextLong()%500);
+			offset = 8000 + (r.nextLong()%500);
 		} else offset=0;
 	}
 	
@@ -196,5 +196,9 @@ public class Chunk implements Serializable {
 
 	public void setOffset(int i) {
 		offset=0;		
+	}
+
+	public void setLastSend(long currentTimeMillis) {
+		lastSend = currentTimeMillis;
 	}
 }

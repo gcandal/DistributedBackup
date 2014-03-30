@@ -396,6 +396,7 @@ public class Processor extends Thread{
 					if(!waitingChunks.contains(c))
 					{
 						c.restart();
+						c.setLastSend(System.currentTimeMillis());
 						waitingChunks.add(c);
 					}
 			}
