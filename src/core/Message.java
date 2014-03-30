@@ -125,7 +125,7 @@ public class Message {
 			return sb.toString();
 		}
 
-		sb.append(version);
+		sb.append(Processor.version);
 		sb.append(" ");
 		sb.append(fileIdString);
 		sb.append(" ");
