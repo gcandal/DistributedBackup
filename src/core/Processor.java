@@ -202,22 +202,13 @@ public class Processor extends Thread{
 			return;
 
 		if (msg.ready()) {
-			if (chk.getCounter() < chk.getReplicationDeg()) {
-
-				Message newMsg = new Message("PUTCHUNK", version,
-						msg.getTextFileId());
-				newMsg.setReplicationDeg(chk.getReplicationDeg());
-				newMsg.setChunkNo(msg.getChunkNo());
-
-				try {
-					newMsg.setBody(chk.load());
-				} catch (IOException e) {
-					gui.log("Couldn't load chunk's " + chk.getChunkId()
-							+ " body");
-					return;
+			if (chk.getCounter() < chk.getReplicationDeg() && !chk.isGost()) {
+				if(!waitingChunks.contains(chk))
+				{
+					chk.restart();
+					chk.setOffset(0);
+					waitingChunks.add(chk);
 				}
-
-				outgoingQueue.add(newMsg);
 			}
 			gui.log("processRemoved");
 		} else
@@ -246,35 +237,35 @@ public class Processor extends Thread{
 
 		if (chk == null)
 			return;
-		
+
 		gui.log("processChunk " + msg.getTextFileId() + " " + msg.getChunkNo());
 
 		if (chk.isMine()) {
 			// write to disk -> if all chunks are present, merge file with			
 			// name in filesToBeRestored
-			
+
 			try {
 				chk.save(msg.getBody());
 			} catch (IOException e) {
 				gui.log("Couldn't write " + chk.getChunkId() + " to disk");
 				e.printStackTrace();
 			}
-			
+
 			String filename = chk.getTextFileId();
 			long nrChunks = nrChunksByFile.get(filename);
 			String newName = filesToBeRestored.get(filename);
 			if (ChunkManager.countChunks("./", filename) == nrChunks
 					&& newName != null) {
-				
+
 				String fileRealName = myFiles.get(filename);
-				
+
 				if(fileRealName.contains("/"))
 					fileRealName = fileRealName.substring(fileRealName
-						.lastIndexOf('/') + 1);
+							.lastIndexOf('/') + 1);
 				else
 					fileRealName = fileRealName.substring(fileRealName
-						.lastIndexOf('\\') + 1);
-				
+							.lastIndexOf('\\') + 1);
+
 				try {
 					ChunkManager.mergeChunks("./", filename, newName,
 							fileRealName);
@@ -307,7 +298,7 @@ public class Processor extends Thread{
 
 			if (chk == null)
 				return;
-			if (chk.isMine())
+			if (chk.isMine() || chk.isGost())
 				return;
 
 			Message newMsg = new Message("CHUNK", version, msg.getTextFileId());
@@ -358,50 +349,58 @@ public class Processor extends Thread{
 
 		if (myFiles.containsKey(msg.getTextFileId()))
 			return;	
+		
+		// if a putchunk message was received in reply to removed, exclude remove from inqueue 
+		for (Message m : messageQueue) {
+			if (m.getMessageType().equals("REMOVED")
+					&& Chunk.getChunkId(m.getTextFileId(), m.getChunkNo())
+					.equals(Chunk.getChunkId(msg.getTextFileId(), msg.getChunkNo()))) {
+				processRemoved(m, false);
+				messageQueue.remove(m);
+				break;
+			}
+		}
+
+		Chunk c = chunks.get(Chunk.getChunkId(msg.getTextFileId(), msg.getChunkNo()));
+
+		if(c == null)
+		{
+			c = new Chunk(msg.getTextFileId(), msg.getChunkNo(),
+					msg.getReplicationDeg(), msg.getSenderIp());
+			chunks.put(
+					Chunk.getChunkId(msg.getTextFileId(), msg.getChunkNo()),
+					c);
+			c.setGost(true);
+		}
 
 		if (msg.ready()) {
+
 			Message newMsg = new Message("STORED", version, msg.getTextFileId());
 			newMsg.setChunkNo(msg.getChunkNo());
 
-			for (Message m : messageQueue) {
-				if (m.getMessageType().equals("REMOVED")
-						&& Chunk.getChunkId(m.getTextFileId(), m.getChunkNo())
-						.equals(Chunk.getChunkId(msg.getTextFileId(), msg.getChunkNo()))) {
-					processRemoved(m, false);
-					messageQueue.remove(m);
-					break;
-				}
-			}
-
-			if(chunks.containsKey(Chunk.getChunkId(msg.getTextFileId(), msg.getChunkNo())))
+			if(!c.isGost())
 			{
 				outgoingQueue.add(newMsg);
-			} else
-			{
-				if (sizes[0] + msg.getBody().length <= sizes[1]*1000000) {
-					Chunk chunk = new Chunk(msg.getTextFileId(), msg.getChunkNo(),
-							msg.getReplicationDeg(), msg.getSenderIp());
+			} else if (sizes[0] + msg.getBody().length <= sizes[1]*1000000 && c.getCounter() < c.getReplicationDeg()) {
 
 					try {
-						chunk.save(msg.getBody());
+						c.save(msg.getBody());
 					} catch (IOException e) {
-						gui.log("Couldn't write " + chunk.getChunkId() + " to disk");
-
+						gui.log("Couldn't write " + c.getChunkId() + " to disk");
 						return;
 					}
-
+					c.setGost(false);
 					sizes[0] += msg.getBody().length;
 					gui.setUsedSpace(sizes[0]);
-					chunks.put(
-							Chunk.getChunkId(msg.getTextFileId(), msg.getChunkNo()),
-							chunk);
-
 					outgoingQueue.add(newMsg);
-				}
+					if(!waitingChunks.contains(c))
+					{
+						c.restart();
+						waitingChunks.add(c);
+					}
 			}
-
-			gui.log("processPutChunk Received " + msg.toString());
-		} else {
+		} else
+		{
 			messageQueue.add(msg);
 		}
 	}
@@ -464,7 +463,7 @@ public class Processor extends Thread{
 	}
 
 	public void setSpaceLimit(int mbLimit) {
-		
+
 		sizes[1] = mbLimit;
 
 		if(sizes[0] <= mbLimit*1000000)

@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Random;
 
 import utils.ChunkManager;
 
@@ -20,11 +21,13 @@ public class Chunk implements Serializable {
 	private String chunkIp;
 	private HashSet<String> hostsWithChunk;
 	private boolean mine;
+	private boolean gost;
 	
 	// STORED
 	private long timeInterval = 500;
 	private long lastSend;
 	private int sendTimes = 0;
+	private long offset = 0;
 	
 	public static class ChunkCompare implements Comparator<Chunk>
 	{
@@ -59,6 +62,11 @@ public class Chunk implements Serializable {
 		this.chunkIp = ip;
 		this.mine = mine;
 		this.lastSend = 0;
+		if(!mine)
+		{
+			Random r = new Random();
+			offset = 1000 + (r.nextLong()%500);
+		}
 	}
 	
 	public void restart()
@@ -66,6 +74,11 @@ public class Chunk implements Serializable {
 		lastSend = 0;
 		timeInterval = 500;
 		sendTimes = 0;
+		if(!mine)
+		{
+			Random r = new Random();
+			offset = 1000 + (r.nextLong()%500);
+		} else offset=0;
 	}
 	
 	public void notifySent()
@@ -73,17 +86,18 @@ public class Chunk implements Serializable {
 		lastSend = System.currentTimeMillis();
 		sendTimes++;
 		timeInterval *= 2;
+		offset = 0;
 	}
 	
 	public boolean timeOver()
 	{
 		long dif = System.currentTimeMillis() - lastSend;
-		return dif >= timeInterval;
+		return dif >= (timeInterval+offset);
 	}
 	
 	public boolean shouldResend()
 	{
-		return (hostsWithChunk.size()<replicationDeg && sendTimes < 5);	
+		return (hostsWithChunk.size()<replicationDeg && sendTimes < 5 && !gost);	
 	}
 		
 	public void addHostWithChunk(String ip)
@@ -171,4 +185,16 @@ public class Chunk implements Serializable {
 		
 		return false;
 	}*/
+
+	public boolean isGost() {
+		return gost;
+	}
+
+	public void setGost(boolean gost) {
+		this.gost = gost;
+	}
+
+	public void setOffset(int i) {
+		offset=0;		
+	}
 }
